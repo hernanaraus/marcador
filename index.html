@@ -199,7 +199,7 @@
     </div>
 
     <div class="preview-stage">
-        <div class="preview-badge">Vista Previa En Vivo (Carga directa desde PC + Firestore)</div>
+        <div class="preview-badge">Vista Previa En Vivo (Transmisión Directa a OBS)</div>
         <div id="previewMount"></div>
     </div>
 
@@ -444,7 +444,7 @@
     <div class="actions-bar">
         <div>
             <strong style="color: var(--gold);">Producto diseñado por Tiempo Fuera</strong>
-            <div id="pubStatus" style="font-size: 12px; color: #aaa; margin-top: 3px;">Conectando con Firestore...</div>
+            <div id="pubStatus" style="font-size: 12px; color: #aaa; margin-top: 3px;">Listo para transmitir</div>
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button id="btnToggleVisBottom" class="btn-vis-on" onclick="alternarVisibilidadOBS()">👁 Ocultar Marcador en OBS</button>
@@ -454,19 +454,6 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDW3Ss4V9OKXcw8PEtY-2Pn_mpShu1Mdag",
-            authDomain: "marcador-f7a8e.firebaseapp.com",
-            projectId: "marcador-f7a8e",
-            storageBucket: "marcador-f7a8e.firebasestorage.app",
-            messagingSenderId: "1047331307941",
-            appId: "1:1047331307941:web:61f74aeebbb7d85ee4a84c",
-            measurementId: "G-3MWDPPCPSC"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
         const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
         const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
 
@@ -480,7 +467,10 @@
             if (typeof mqtt === 'undefined') return;
             if (mqttClient) { try { mqttClient.end(true); } catch (e) {} }
             mqttClient = mqtt.connect(BROKER_URL, { reconnectPeriod: 1000 });
-            mqttClient.on('connect', () => { mqttClient.subscribe(`${CANAL_BASE}/vivo`); });
+            mqttClient.on('connect', () => {
+                mqttClient.subscribe(`${CANAL_BASE}/vivo`);
+                mqttClient.subscribe(`${CANAL_BASE}/config`);
+            });
             mqttClient.on('message', (topic, message) => {
                 if (topic === `${CANAL_BASE}/vivo`) {
                     try {
@@ -527,20 +517,10 @@
             }
         }
 
-        async function alternarVisibilidadOBS() {
+        function alternarVisibilidadOBS() {
             marcadorVisible = !marcadorVisible;
             actualizarBotonesVisibilidad();
-            const status = document.getElementById('pubStatus');
-            try {
-                await db.collection('scoreboard').doc('live_config').set({ visible: marcadorVisible }, { merge: true });
-                status.style.color = '#81c784';
-                status.textContent = marcadorVisible
-                    ? `Marcador mostrado en OBS (${new Date().toLocaleTimeString()})`
-                    : `Marcador ocultado en OBS (${new Date().toLocaleTimeString()})`;
-            } catch (e) {
-                status.style.color = '#ff5252';
-                status.textContent = 'Error cambiando visibilidad: ' + e.message;
-            }
+            transmitirDisenoOBS();
         }
 
         function aclararHex(hex, porcentaje) {
@@ -573,36 +553,27 @@
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const img = new Image();
-                img.onload = async function() {
-                    try {
-                        const targetH = 150;
-                        const scale = img.height > targetH ? (targetH / img.height) : 1;
-                        const finalW = Math.max(1, Math.round(img.width * scale));
-                        const finalH = Math.max(1, Math.round(img.height * scale));
+                img.onload = function() {
+                    const targetH = 135;
+                    const scale = img.height > targetH ? (targetH / img.height) : 1;
+                    const finalW = Math.max(1, Math.round(img.width * scale));
+                    const finalH = Math.max(1, Math.round(img.height * scale));
 
-                        const outCanvas = document.createElement('canvas');
-                        outCanvas.width = finalW;
-                        outCanvas.height = finalH;
-                        const oCtx = outCanvas.getContext('2d');
-                        oCtx.clearRect(0, 0, finalW, finalH);
-                        oCtx.drawImage(img, 0, 0, finalW, finalH);
+                    const outCanvas = document.createElement('canvas');
+                    outCanvas.width = finalW;
+                    outCanvas.height = finalH;
+                    const oCtx = outCanvas.getContext('2d');
+                    oCtx.clearRect(0, 0, finalW, finalH);
+                    oCtx.drawImage(img, 0, 0, finalW, finalH);
 
-                        const dataUrl = outCanvas.toDataURL('image/webp', 0.85);
-                        logos[key] = dataUrl;
+                    const dataUrl = outCanvas.toDataURL('image/webp', 0.82);
+                    logos[key] = dataUrl;
 
-                        const pInput = document.getElementById(pathInputId);
-                        if (pInput) pInput.value = `OK (${Math.round(dataUrl.length / 1024)} KB)`;
+                    const pInput = document.getElementById(pathInputId);
+                    if (pInput) pInput.value = `OK (${Math.round(dataUrl.length / 1024)} KB)`;
 
-                        actualizarTodo();
-                        await transmitirDisenoOBS();
-                    } catch (err) {
-                        status.style.color = '#ff5252';
-                        status.textContent = 'Error procesando logo: ' + err.message;
-                    }
-                };
-                img.onerror = function() {
-                    status.style.color = '#ff5252';
-                    status.textContent = 'Formato de imagen no soportado. Usa PNG o JPG.';
+                    actualizarTodo();
+                    transmitirDisenoOBS();
                 };
                 img.src = ev.target.result;
             };
@@ -848,11 +819,12 @@
         function actualizarTodo() {
             sincronizarControlesUI();
             const cfg = obtenerConfig();
+            localStorage.setItem('tf_scoreboard_backup', JSON.stringify(cfg));
             const mount = document.getElementById('previewMount');
             if (mount) mount.innerHTML = generarHTMLMarcador(cfg);
         }
 
-        async function resetearLogos() {
+        function resetearLogos() {
             logos.liga = '';
             logos.eq1 = '';
             logos.eq2 = '';
@@ -866,87 +838,86 @@
             document.getElementById('logo2In').value = '';
             document.getElementById('logoTopIn').value = '';
             actualizarTodo();
-            await transmitirDisenoOBS();
+            transmitirDisenoOBS();
         }
 
-        async function transmitirDisenoOBS() {
+        function transmitirDisenoOBS() {
             const status = document.getElementById('pubStatus');
             const cfg = obtenerConfig();
-            try {
-                await db.collection('scoreboard').doc('live_config').set(cfg);
+            localStorage.setItem('tf_scoreboard_backup', JSON.stringify(cfg));
+
+            if (mqttClient && mqttClient.connected) {
+                mqttClient.publish(`${CANAL_BASE}/config`, JSON.stringify(cfg), { qos: 1, retain: true });
                 status.style.color = '#81c784';
-                status.textContent = `Transmitido a OBS y guardado en Firestore (${new Date().toLocaleTimeString()})`;
-            } catch (e) {
-                status.style.color = '#ff5252';
-                status.textContent = 'Error al guardar en Firestore: ' + e.message;
+                status.textContent = `Diseño y logos transmitidos a OBS (${new Date().toLocaleTimeString()})`;
+            } else {
+                conectarMQTT();
+                setTimeout(() => {
+                    if (mqttClient && mqttClient.connected) {
+                        mqttClient.publish(`${CANAL_BASE}/config`, JSON.stringify(cfg), { qos: 1, retain: true });
+                        status.style.color = '#81c784';
+                        status.textContent = `Diseño y logos transmitidos a OBS (${new Date().toLocaleTimeString()})`;
+                    } else {
+                        status.style.color = '#ff5252';
+                        status.textContent = 'Reconectando canal... Presiona Guardar nuevamente.';
+                    }
+                }, 1200);
             }
         }
 
-        async function cargarDesdeFirebase() {
-            const status = document.getElementById('pubStatus');
+        function cargarRespaldoLocal() {
             try {
-                const doc = await db.collection('scoreboard').doc('live_config').get();
-                if (doc.exists) {
-                    const cfg = doc.data();
-                    if (typeof cfg.visible === 'boolean') marcadorVisible = cfg.visible;
-                    if (cfg.boardScale) document.getElementById('boardScale').value = Math.round(cfg.boardScale * 100);
-                    document.getElementById('fontFamily').value = cfg.fontFamily || "'Barlow Condensed', sans-serif";
-                    document.getElementById('accentColor').value = cfg.accentColor || "#e3b857";
-                    document.getElementById('foulActiveColor').value = cfg.foulActiveColor || "#ffe600";
-                    document.getElementById('foulBonusColor').value = cfg.foulBonusColor || "#ff1744";
-                    document.getElementById('ligaSize').value = cfg.ligaSize || 92;
-                    document.getElementById('teamLogoSize').value = cfg.teamLogoSize || 44;
-                    document.getElementById('teamFontSize').value = cfg.teamFontSize || 25;
-                    document.getElementById('scoreBoxSize').value = cfg.scoreBoxSize || 48;
-                    document.getElementById('clockFontSize').value = cfg.clockFontSize || 32;
-                    document.getElementById('topBadgeEnabled').value = cfg.topBadgeEnabled ? '1' : '0';
-                    document.getElementById('topBadgeMode').value = cfg.topBadgeMode || 'image';
-                    document.getElementById('topImgSize').value = cfg.topImgSize || 44;
-                    document.getElementById('topImgOffset').value = cfg.topImgOffset || 18;
-                    document.getElementById('topTextValue').value = cfg.topTextValue || '';
-                    document.getElementById('topTextColor').value = cfg.topTextColor || '#ffffff';
-                    document.getElementById('topTextSize').value = cfg.topTextSize || 15;
-                    document.getElementById('topTextOffset').value = cfg.topTextOffset || 14;
-                    document.getElementById('showShotClock').value = cfg.showShotClock ? '1' : '0';
-                    document.getElementById('name1').value = cfg.name1 || 'DREAMZ';
-                    document.getElementById('bg1Color').value = cfg.bg1Color || '#1c1e24';
-                    document.getElementById('text1Color').value = cfg.text1Color || '#ffffff';
-                    document.getElementById('name2').value = cfg.name2 || 'BRISAS';
-                    document.getElementById('bg2Color').value = cfg.bg2Color || '#1c1e24';
-                    document.getElementById('text2Color').value = cfg.text2Color || '#ffffff';
-                    document.getElementById('scoreBgColor').value = cfg.scoreBgColor || '#0c0d10';
-                    document.getElementById('scoreTextColor').value = cfg.scoreTextColor || '#e3b857';
-                    document.getElementById('clockBgColor').value = cfg.clockBgColor || '#141519';
-                    document.getElementById('shotTextColor').value = cfg.shotTextColor || '#ff2a2a';
-                    document.getElementById('clockTextColor').value = cfg.clockTextColor || '#ffffff';
-                    document.getElementById('periodTextColor').value = cfg.periodTextColor || '#e3b857';
+                const raw = localStorage.getItem('tf_scoreboard_backup');
+                if (!raw) return;
+                const cfg = JSON.parse(raw);
+                if (typeof cfg.visible === 'boolean') marcadorVisible = cfg.visible;
+                if (cfg.boardScale) document.getElementById('boardScale').value = Math.round(cfg.boardScale * 100);
+                document.getElementById('fontFamily').value = cfg.fontFamily || "'Barlow Condensed', sans-serif";
+                document.getElementById('accentColor').value = cfg.accentColor || "#e3b857";
+                document.getElementById('foulActiveColor').value = cfg.foulActiveColor || "#ffe600";
+                document.getElementById('foulBonusColor').value = cfg.foulBonusColor || "#ff1744";
+                document.getElementById('ligaSize').value = cfg.ligaSize || 92;
+                document.getElementById('teamLogoSize').value = cfg.teamLogoSize || 44;
+                document.getElementById('teamFontSize').value = cfg.teamFontSize || 25;
+                document.getElementById('scoreBoxSize').value = cfg.scoreBoxSize || 48;
+                document.getElementById('clockFontSize').value = cfg.clockFontSize || 32;
+                document.getElementById('topBadgeEnabled').value = cfg.topBadgeEnabled ? '1' : '0';
+                document.getElementById('topBadgeMode').value = cfg.topBadgeMode || 'image';
+                document.getElementById('topImgSize').value = cfg.topImgSize || 44;
+                document.getElementById('topImgOffset').value = cfg.topImgOffset || 18;
+                document.getElementById('topTextValue').value = cfg.topTextValue || '';
+                document.getElementById('topTextColor').value = cfg.topTextColor || '#ffffff';
+                document.getElementById('topTextSize').value = cfg.topTextSize || 15;
+                document.getElementById('topTextOffset').value = cfg.topTextOffset || 14;
+                document.getElementById('showShotClock').value = cfg.showShotClock ? '1' : '0';
+                document.getElementById('name1').value = cfg.name1 || 'DREAMZ';
+                document.getElementById('bg1Color').value = cfg.bg1Color || '#1c1e24';
+                document.getElementById('text1Color').value = cfg.text1Color || '#ffffff';
+                document.getElementById('name2').value = cfg.name2 || 'BRISAS';
+                document.getElementById('bg2Color').value = cfg.bg2Color || '#1c1e24';
+                document.getElementById('text2Color').value = cfg.text2Color || '#ffffff';
+                document.getElementById('scoreBgColor').value = cfg.scoreBgColor || '#0c0d10';
+                document.getElementById('scoreTextColor').value = cfg.scoreTextColor || '#e3b857';
+                document.getElementById('clockBgColor').value = cfg.clockBgColor || '#141519';
+                document.getElementById('shotTextColor').value = cfg.shotTextColor || '#ff2a2a';
+                document.getElementById('clockTextColor').value = cfg.clockTextColor || '#ffffff';
+                document.getElementById('periodTextColor').value = cfg.periodTextColor || '#e3b857';
 
-                    logos.liga = cfg.logoLiga || '';
-                    logos.eq1 = cfg.logo1 || '';
-                    logos.eq2 = cfg.logo2 || '';
-                    logos.top = cfg.logoTop || '';
+                logos.liga = cfg.logoLiga || '';
+                logos.eq1 = cfg.logo1 || '';
+                logos.eq2 = cfg.logo2 || '';
+                logos.top = cfg.logoTop || '';
 
-                    document.getElementById('logoLigaPath').value = logos.liga ? `OK (${Math.round(logos.liga.length / 1024)} KB)` : '';
-                    document.getElementById('logo1Path').value = logos.eq1 ? `OK (${Math.round(logos.eq1.length / 1024)} KB)` : '';
-                    document.getElementById('logo2Path').value = logos.eq2 ? `OK (${Math.round(logos.eq2.length / 1024)} KB)` : '';
-                    document.getElementById('logoTopPath').value = logos.top ? `OK (${Math.round(logos.top.length / 1024)} KB)` : '';
-
-                    status.style.color = '#81c784';
-                    status.textContent = 'Diseño y logos recuperados desde Firestore.';
-                } else {
-                    status.style.color = '#81c784';
-                    status.textContent = 'Firestore conectado. Sube tus logos o presiona Guardar.';
-                }
-            } catch (e) {
-                status.style.color = '#ff5252';
-                status.textContent = 'Error conectando a Firestore: ' + e.message;
-            }
+                document.getElementById('logoLigaPath').value = logos.liga ? `OK (${Math.round(logos.liga.length / 1024)} KB)` : '';
+                document.getElementById('logo1Path').value = logos.eq1 ? `OK (${Math.round(logos.eq1.length / 1024)} KB)` : '';
+                document.getElementById('logo2Path').value = logos.eq2 ? `OK (${Math.round(logos.eq2.length / 1024)} KB)` : '';
+                document.getElementById('logoTopPath').value = logos.top ? `OK (${Math.round(logos.top.length / 1024)} KB)` : '';
+            } catch (e) {}
             actualizarBotonesVisibilidad();
             actualizarTodo();
         }
 
-        actualizarTodo();
-        cargarDesdeFirebase();
+        cargarRespaldoLocal();
         conectarMQTT();
     </script>
 </body>
