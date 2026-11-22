@@ -7,7 +7,6 @@
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <style>
         :root {
             --bg-panel: #111215;
@@ -105,7 +104,7 @@
         }
         .grid-3 {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(295px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(305px, 1fr));
             gap: 16px;
             margin-bottom: 20px;
         }
@@ -142,7 +141,7 @@
             color: #fff;
             padding: 7px 10px;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
             width: 56%;
         }
         input[type="color"] {
@@ -155,9 +154,19 @@
             padding: 0;
         }
         input[type="file"] {
-            font-size: 12px;
+            font-size: 11px;
             color: #bbb;
             width: 56%;
+        }
+        .logo-box-group {
+            background: #14161a;
+            border: 1px solid #282c36;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .logo-box-group .row:last-child {
+            margin-bottom: 0;
         }
         .range-wrap {
             display: flex;
@@ -221,16 +230,22 @@
     </div>
 
     <div class="preview-stage">
-        <div class="preview-badge">Vista Previa En Vivo (Sincronizada con Firebase + ScoreSight)</div>
+        <div class="preview-badge">Vista Previa En Vivo (Firestore + Repositorio GitHub)</div>
         <div id="previewMount"></div>
     </div>
 
     <div class="grid-3">
         <div class="card">
             <h3>1. Liga y Tipografía</h3>
-            <div class="row">
-                <label>Logo Liga / Torneo</label>
-                <input type="file" id="logoLigaIn" accept="image/*">
+            <div class="logo-box-group">
+                <div class="row">
+                    <label>Ruta Logo Liga (GitHub)</label>
+                    <input type="text" id="logoLigaPath" placeholder="./logos/liga.png" oninput="actualizarRutaLogo('liga', this.value)">
+                </div>
+                <div class="row">
+                    <label>O subir rápido desde PC</label>
+                    <input type="file" id="logoLigaIn" accept="image/*">
+                </div>
             </div>
             <div class="row">
                 <label>Tipografía del Marcador</label>
@@ -261,9 +276,15 @@
                 <label>Nombre Equipo 1 (máx. 24)</label>
                 <input type="text" id="name1" value="DREAMZ" maxlength="24" oninput="actualizarTodo()">
             </div>
-            <div class="row">
-                <label>Logo Equipo 1</label>
-                <input type="file" id="logo1In" accept="image/*">
+            <div class="logo-box-group">
+                <div class="row">
+                    <label>Ruta Logo 1 (GitHub)</label>
+                    <input type="text" id="logo1Path" placeholder="./logos/equipo1.png" oninput="actualizarRutaLogo('eq1', this.value)">
+                </div>
+                <div class="row">
+                    <label>O subir rápido desde PC</label>
+                    <input type="file" id="logo1In" accept="image/*">
+                </div>
             </div>
             <div class="row">
                 <label>Color Base (Gradiente 3D)</label>
@@ -281,9 +302,15 @@
                 <label>Nombre Equipo 2 (máx. 24)</label>
                 <input type="text" id="name2" value="BRISAS" maxlength="24" oninput="actualizarTodo()">
             </div>
-            <div class="row">
-                <label>Logo Equipo 2</label>
-                <input type="file" id="logo2In" accept="image/*">
+            <div class="logo-box-group">
+                <div class="row">
+                    <label>Ruta Logo 2 (GitHub)</label>
+                    <input type="text" id="logo2Path" placeholder="./logos/equipo2.png" oninput="actualizarRutaLogo('eq2', this.value)">
+                </div>
+                <div class="row">
+                    <label>O subir rápido desde PC</label>
+                    <input type="file" id="logo2In" accept="image/*">
+                </div>
             </div>
             <div class="row">
                 <label>Color Base (Gradiente 3D)</label>
@@ -358,9 +385,15 @@
                 </select>
             </div>
             <div id="topImageControls">
-                <div class="row">
-                    <label>Subir Gráfica Superior</label>
-                    <input type="file" id="logoTopIn" accept="image/*">
+                <div class="logo-box-group">
+                    <div class="row">
+                        <label>Ruta Gráfica (GitHub)</label>
+                        <input type="text" id="logoTopPath" placeholder="./logos/sponsor.png" oninput="actualizarRutaLogo('top', this.value)">
+                    </div>
+                    <div class="row">
+                        <label>O subir rápido desde PC</label>
+                        <input type="file" id="logoTopIn" accept="image/*">
+                    </div>
                 </div>
                 <div class="row">
                     <label>Tamaño Gráfica</label>
@@ -442,7 +475,7 @@
     <div class="actions-bar">
         <div>
             <strong style="color: var(--gold);">Producto diseñado por Tiempo Fuera</strong>
-            <div id="pubStatus" style="font-size: 12px; color: #aaa; margin-top: 3px;">Conectando con Firebase...</div>
+            <div id="pubStatus" style="font-size: 12px; color: #aaa; margin-top: 3px;">Conectando con Firestore...</div>
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button id="btnToggleVisBottom" class="btn-vis-on" onclick="alternarVisibilidadOBS()">👁 Ocultar Marcador en OBS</button>
@@ -453,18 +486,17 @@
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyA4KJHj5CxSG3zmzvBqycYI0MrK5aLOjco",
-            authDomain: "marcador-b71de.firebaseapp.com",
-            projectId: "marcador-b71de",
-            storageBucket: "marcador-b71de.firebasestorage.app",
-            messagingSenderId: "290408475283",
-            appId: "1:290408475283:web:373133716de3f36afa3b66",
-            measurementId: "G-CJZ0SJ2SWY"
+            apiKey: "AIzaSyDW3Ss4V9OKXcw8PEtY-2Pn_mpShu1Mdag",
+            authDomain: "marcador-f7a8e.firebaseapp.com",
+            projectId: "marcador-f7a8e",
+            storageBucket: "marcador-f7a8e.firebasestorage.app",
+            messagingSenderId: "1047331307941",
+            appId: "1:1047331307941:web:61f74aeebbb7d85ee4a84c",
+            measurementId: "G-3MWDPPCPSC"
         };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const storage = firebase.storage();
 
         const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
         const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
@@ -553,7 +585,7 @@
                     : `Marcador ocultado suavemente en OBS (${new Date().toLocaleTimeString()})`;
             } catch (e) {
                 status.style.color = '#ff5252';
-                status.textContent = 'Error cambiando visibilidad en Firebase: ' + e.message;
+                status.textContent = 'Error cambiando visibilidad en Firestore: ' + e.message;
             }
         }
 
@@ -579,10 +611,15 @@
             return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
         }
 
-        function procesarYSubirLogo(file, key) {
+        function actualizarRutaLogo(key, valor) {
+            logos[key] = (valor || '').trim();
+            actualizarTodo();
+        }
+
+        function procesarLogoRapido(file, key, pathInputId) {
             const status = document.getElementById('pubStatus');
             status.style.color = '#ffd740';
-            status.textContent = `Optimizando y subiendo logo (${key}) a la nube...`;
+            status.textContent = `Recortando y optimizando logo (${key})...`;
 
             const reader = new FileReader();
             reader.onload = function(ev) {
@@ -618,7 +655,7 @@
                     const trimW = Math.max(1, maxX - minX + 1);
                     const trimH = Math.max(1, maxY - minY + 1);
 
-                    const targetH = 240;
+                    const targetH = 180;
                     const scale = trimH > targetH ? (targetH / trimH) : 1;
                     const finalW = Math.round(trimW * scale);
                     const finalH = Math.round(trimH * scale);
@@ -631,40 +668,32 @@
                     oCtx.imageSmoothingQuality = 'high';
                     oCtx.drawImage(tempCanvas, minX, minY, trimW, trimH, 0, 0, finalW, finalH);
 
-                    outCanvas.toBlob(async (blob) => {
-                        try {
-                            const ref = storage.ref().child(`scoreboard_logos/${key}_${Date.now()}.png`);
-                            await ref.put(blob);
-                            const downloadURL = await ref.getDownloadURL();
-                            logos[key] = downloadURL;
-                            actualizarTodo();
-                            await transmitirDisenoOBS();
-                            status.style.color = '#81c784';
-                            status.textContent = `Logo (${key}) optimizado, guardado en nube y sincronizado con OBS.`;
-                        } catch (err) {
-                            status.style.color = '#ff5252';
-                            status.textContent = `Error subiendo logo a Firebase Storage: ${err.message}`;
-                        }
-                    }, 'image/png');
+                    const dataUrl = outCanvas.toDataURL('image/webp', 0.85);
+                    logos[key] = dataUrl;
+                    const pInput = document.getElementById(pathInputId);
+                    if (pInput) pInput.value = '[Imagen optimizada desde PC]';
+                    actualizarTodo();
+                    status.style.color = '#81c784';
+                    status.textContent = `Logo (${key}) listo (${Math.round(dataUrl.length / 1024)} KB). Presiona "Guardar y Transmitir a OBS".`;
                 };
                 img.src = ev.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        function bindLogo(inputId, key) {
+        function bindLogo(inputId, key, pathInputId) {
             const el = document.getElementById(inputId);
             if (!el) return;
             el.addEventListener('change', function(e) {
                 const file = e.target.files[0];
-                if (file) procesarYSubirLogo(file, key);
+                if (file) procesarLogoRapido(file, key, pathInputId);
             });
         }
 
-        bindLogo('logoLigaIn', 'liga');
-        bindLogo('logo1In', 'eq1');
-        bindLogo('logo2In', 'eq2');
-        bindLogo('logoTopIn', 'top');
+        bindLogo('logoLigaIn', 'liga', 'logoLigaPath');
+        bindLogo('logo1In', 'eq1', 'logo1Path');
+        bindLogo('logo2In', 'eq2', 'logo2Path');
+        bindLogo('logoTopIn', 'top', 'logoTopPath');
 
         function sincronizarControlesUI() {
             const mode = document.getElementById('topBadgeMode').value;
@@ -776,14 +805,14 @@
             }
 
             const ligaHTML = cfg.logoLiga
-                ? `<img src="${cfg.logoLiga}" alt="Liga">`
+                ? `<img src="${cfg.logoLiga}" alt="Liga" onerror="this.style.display='none'">`
                 : `<div class="lm-league-placeholder">LOGO<br>LIGA</div>`;
 
             let topBadgeHTML = '';
             if (cfg.topBadgeEnabled) {
                 if (cfg.topBadgeMode === 'image') {
                     if (cfg.logoTop) {
-                        topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt=""></div>`;
+                        topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt="" onerror="this.style.display='none'"></div>`;
                     } else {
                         topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><div class="lm-top-placeholder" style="height:${cfg.topImgSize}px;">GRÁFICA</div></div>`;
                     }
@@ -837,7 +866,7 @@
                     <div class="lm-league-box">${ligaHTML}</div>
                     <div class="lm-track">
                         <div class="lm-team-wing" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
-                            <img class="lm-team-logo" src="${cfg.logo1}" alt="">
+                            <img class="lm-team-logo" src="${cfg.logo1}" alt="" onerror="this.style.display='none'">
                             <div class="lm-team-meta">
                                 <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
                                 <div class="lm-fouls" id="prevFouls1">${renderFaltas(f1Val)}</div>
@@ -851,7 +880,7 @@
                             ${shotClockHTML}
                         </div>
                         <div class="lm-team-wing away" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
-                            <img class="lm-team-logo" src="${cfg.logo2}" alt="">
+                            <img class="lm-team-logo" src="${cfg.logo2}" alt="" onerror="this.style.display='none'">
                             <div class="lm-team-meta">
                                 <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
                                 <div class="lm-fouls" id="prevFouls2">${renderFaltas(f2Val)}</div>
@@ -898,6 +927,10 @@
             logos.eq1 = '';
             logos.eq2 = '';
             logos.top = '';
+            document.getElementById('logoLigaPath').value = '';
+            document.getElementById('logo1Path').value = '';
+            document.getElementById('logo2Path').value = '';
+            document.getElementById('logoTopPath').value = '';
             document.getElementById('logoLigaIn').value = '';
             document.getElementById('logo1In').value = '';
             document.getElementById('logo2In').value = '';
@@ -912,10 +945,10 @@
             try {
                 await db.collection('scoreboard').doc('live_config').set(cfg);
                 status.style.color = '#81c784';
-                status.textContent = `Guardado en Firebase y transmitido a OBS (${new Date().toLocaleTimeString()})`;
+                status.textContent = `Guardado en Firestore y transmitido a OBS (${new Date().toLocaleTimeString()})`;
             } catch (e) {
                 status.style.color = '#ff5252';
-                status.textContent = 'Error al guardar en Firebase: ' + e.message;
+                status.textContent = 'Error al guardar en Firestore: ' + e.message;
             }
         }
 
@@ -963,15 +996,20 @@
                     logos.eq2 = cfg.logo2 || '';
                     logos.top = cfg.logoTop || '';
 
+                    document.getElementById('logoLigaPath').value = logos.liga.startsWith('data:') ? '[Imagen optimizada desde PC]' : logos.liga;
+                    document.getElementById('logo1Path').value = logos.eq1.startsWith('data:') ? '[Imagen optimizada desde PC]' : logos.eq1;
+                    document.getElementById('logo2Path').value = logos.eq2.startsWith('data:') ? '[Imagen optimizada desde PC]' : logos.eq2;
+                    document.getElementById('logoTopPath').value = logos.top.startsWith('data:') ? '[Imagen optimizada desde PC]' : logos.top;
+
                     status.style.color = '#81c784';
-                    status.textContent = 'Configuración y logos recuperados desde Firebase.';
+                    status.textContent = 'Configuración y logos recuperados desde Firestore.';
                 } else {
                     status.style.color = '#81c784';
-                    status.textContent = 'Firebase conectado (listo para guardar primer diseño).';
+                    status.textContent = 'Firestore conectado (listo para guardar primer diseño).';
                 }
             } catch (e) {
                 status.style.color = '#ff5252';
-                status.textContent = 'Error conectando a Firebase: ' + e.message;
+                status.textContent = 'Error conectando a Firestore: ' + e.message;
             }
             actualizarBotonesVisibilidad();
             actualizarTodo();
