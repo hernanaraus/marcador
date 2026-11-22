@@ -103,13 +103,13 @@
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyA4KJHj5CxSG3zmzvBqycYI0MrK5aLOjco",
-            authDomain: "marcador-b71de.firebaseapp.com",
-            projectId: "marcador-b71de",
-            storageBucket: "marcador-b71de.firebasestorage.app",
-            messagingSenderId: "290408475283",
-            appId: "1:290408475283:web:373133716de3f36afa3b66",
-            measurementId: "G-CJZ0SJ2SWY"
+            apiKey: "AIzaSyDW3Ss4V9OKXcw8PEtY-2Pn_mpShu1Mdag",
+            authDomain: "marcador-f7a8e.firebaseapp.com",
+            projectId: "marcador-f7a8e",
+            storageBucket: "marcador-f7a8e.firebasestorage.app",
+            messagingSenderId: "1047331307941",
+            appId: "1:1047331307941:web:61f74aeebbb7d85ee4a84c",
+            measurementId: "G-3MWDPPCPSC"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -224,12 +224,12 @@
             const clockFontSize = cfg.clockFontSize || 32;
             const periodFontSize = Math.round(clockFontSize * 0.74);
 
-            const ligaHTML = cfg.logoLiga ? `<img src="${cfg.logoLiga}" alt="Liga">` : '';
+            const ligaHTML = cfg.logoLiga ? `<img src="${cfg.logoLiga}" alt="Liga" onerror="this.style.display='none'">` : '';
 
             let topBadgeHTML = '';
             if (cfg.topBadgeEnabled) {
                 if (cfg.topBadgeMode === 'image' && cfg.logoTop) {
-                    topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt=""></div>`;
+                    topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt="" onerror="this.style.display='none'"></div>`;
                 } else if (cfg.topBadgeMode === 'text' && (cfg.topTextValue || '').trim() !== '') {
                     topBadgeHTML = `<div class="lm-top-overlay-text" style="top: -${cfg.topTextOffset}px; font-size: ${cfg.topTextSize}px; color: ${cfg.topTextColor};">${cfg.topTextValue}</div>`;
                 }
@@ -273,7 +273,7 @@
                     <div class="lm-league-box">${ligaHTML}</div>
                     <div class="lm-track">
                         <div class="lm-team-wing" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
-                            <img class="lm-team-logo" src="${cfg.logo1 || ''}" alt="">
+                            <img class="lm-team-logo" src="${cfg.logo1 || ''}" alt="" onerror="this.style.display='none'">
                             <div class="lm-team-meta">
                                 <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
                                 <div class="lm-fouls" id="fouls1">${faltasBase}</div>
@@ -287,7 +287,7 @@
                             ${shotClockHTML}
                         </div>
                         <div class="lm-team-wing away" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
-                            <img class="lm-team-logo" src="${cfg.logo2 || ''}" alt="">
+                            <img class="lm-team-logo" src="${cfg.logo2 || ''}" alt="" onerror="this.style.display='none'">
                             <div class="lm-team-meta">
                                 <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
                                 <div class="lm-fouls" id="fouls2">${faltasBase}</div>
