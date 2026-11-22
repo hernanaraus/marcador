@@ -31,12 +31,13 @@
             pointer-events: none;
         }
 
-        /* REDES SOCIALES */
+        /* REDES SOCIALES CON ESCALA CONFIGURABLE */
         .social-pill-wrap {
             position: absolute;
             top: 44px;
             left: 48px;
-            transform: translateX(-36px);
+            transform: translateX(-36px) scale(var(--social-scale, 1));
+            transform-origin: top left;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
@@ -45,11 +46,12 @@
         .social-pill-wrap.pos-top-right {
             left: auto;
             right: 48px;
-            transform: translateX(36px);
+            transform-origin: top right;
+            transform: translateX(36px) scale(var(--social-scale, 1));
         }
         .social-pill-wrap.active {
             opacity: 1;
-            transform: translateX(0);
+            transform: translateX(0) scale(var(--social-scale, 1));
         }
         .social-pill {
             display: flex;
@@ -184,6 +186,7 @@
             logoTop: '',
             socialAutoEnabled: true,
             socialPosition: 'top-left',
+            socialScale: 1.0,
             socialIntervalSec: 150
         };
 
@@ -199,6 +202,28 @@
                 configLista = true;
             }
         } catch (e) {}
+
+        function aclararHex(hex, porcentaje) {
+            hex = (hex || '#1c1e24').replace('#', '');
+            let r = parseInt(hex.substring(0, 2), 16);
+            let g = parseInt(hex.substring(2, 4), 16);
+            let b = parseInt(hex.substring(4, 6), 16);
+            r = Math.min(255, Math.floor(r + (255 - r) * porcentaje));
+            g = Math.min(255, Math.floor(g + (255 - g) * porcentaje));
+            b = Math.min(255, Math.floor(b + (255 - b) * porcentaje));
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+
+        function oscurecerHex(hex, porcentaje) {
+            hex = (hex || '#1c1e24').replace('#', '');
+            let r = parseInt(hex.substring(0, 2), 16);
+            let g = parseInt(hex.substring(2, 4), 16);
+            let b = parseInt(hex.substring(4, 6), 16);
+            r = Math.max(0, Math.floor(r * (1 - porcentaje)));
+            g = Math.max(0, Math.floor(g * (1 - porcentaje)));
+            b = Math.max(0, Math.floor(b * (1 - porcentaje)));
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
 
         function calcularAnchoAla(cfg) {
             const maxChars = Math.max((cfg.name1 || '').length, (cfg.name2 || '').length);
@@ -226,13 +251,20 @@
                 }
             }
             if (socialWrap) {
+                const sScale = parseFloat(cfg.socialScale) || 1.0;
                 socialWrap.style.setProperty('--sb-accent', accent);
+                socialWrap.style.setProperty('--social-scale', sScale);
                 socialWrap.classList.toggle('pos-top-right', cfg.socialPosition === 'top-right');
             }
         }
 
         function renderizarEstructura(cfg) {
             aplicarVisibilidadYEscala(cfg);
+
+            const bg1Light = aclararHex(cfg.bg1Color, 0.22);
+            const bg1Dark = oscurecerHex(cfg.bg1Color, 0.14);
+            const bg2Light = aclararHex(cfg.bg2Color, 0.22);
+            const bg2Dark = oscurecerHex(cfg.bg2Color, 0.14);
 
             const wingWidth = calcularAnchoAla(cfg);
             const ligaBoxHeight = Math.max(92, cfg.ligaSize || 92);
@@ -272,15 +304,18 @@
                     .lm-league-box { height: ${ligaBoxHeight}px; min-width: 86px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px; background: transparent; }
                     .lm-league-box img { height: ${cfg.ligaSize}px; width: auto; max-width: ${Math.round(cfg.ligaSize * 1.35)}px; object-fit: contain; }
                     .lm-track { display: inline-flex; align-items: center; position: relative; background: transparent; }
-                    .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; background: ${cfg.bg1Color}; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; overflow: hidden; }
-                    .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; background: ${cfg.bg2Color}; border-left: none; border-radius: 0; }
+                    .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; background: linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%); border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22); overflow: hidden; }
+                    .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.045) 0px, rgba(255,255,255,0.045) 2px, transparent 2px, transparent 6px); pointer-events: none; z-index: 1; }
+                    .lm-team-wing::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 48%, rgba(0,0,0,0.12) 100%); pointer-events: none; z-index: 1; }
+                    .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; background: linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%); border-left: none; border-radius: 0; }
+                    .lm-team-wing.away::before { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.045) 0px, rgba(255,255,255,0.045) 2px, transparent 2px, transparent 6px); }
                     .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; }
                     .lm-team-meta { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-width: 0; }
-                    .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                    .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.65); }
                     .lm-fouls { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; width: 100%; }
                     .lm-team-wing.away .lm-fouls { flex-direction: row-reverse; justify-content: center; }
                     .foul-bar { width: 19px; height: 5px; border-radius: 2px; display: inline-block; flex-shrink: 0; transition: all 0.2s ease; }
-                    .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: ${cfg.scoreBgColor}; padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; z-index: 3; }
+                    .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.14)} 0%, ${cfg.scoreBgColor} 55%, ${oscurecerHex(cfg.scoreBgColor, 0.18)} 100%); padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22); z-index: 3; }
                     .lm-top-overlay-img { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; }
                     .lm-top-overlay-img img { width: auto; max-width: 210px; object-fit: contain; }
                     .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: ${cfg.scoreBgColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; z-index: 5; }
@@ -289,7 +324,7 @@
                     .lm-score-dash { font-size: ${dashSize}px; font-weight: 800; color: ${cfg.accentColor}; line-height: 1; opacity: 0.85; padding: 0 1px; }
                     .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: ${cfg.shotBgColor}; color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; z-index: 4; }
                     .lm-shotclock-badge:empty { display: none; }
-                    .lm-clock-box { display: flex; align-items: center; height: 60px; background: ${cfg.clockBgColor}; padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; }
+                    .lm-clock-box { display: flex; align-items: center; height: 60px; background: linear-gradient(180deg, ${aclararHex(cfg.clockBgColor, 0.14)} 0%, ${cfg.clockBgColor} 55%, ${oscurecerHex(cfg.clockBgColor, 0.16)} 100%); padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
                     .lm-timer { font-size: ${clockFontSize}px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: ${Math.round(clockFontSize * 2.25)}px; text-align: center; line-height: 1; }
                     .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: rgba(255,255,255,0.08); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.22); line-height: 1; }
                 </style>
