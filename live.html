@@ -5,8 +5,6 @@
     <title>Marcador En Vivo — Tiempo Fuera</title>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
         html, body {
             margin: 0;
@@ -102,19 +100,6 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDW3Ss4V9OKXcw8PEtY-2Pn_mpShu1Mdag",
-            authDomain: "marcador-f7a8e.firebaseapp.com",
-            projectId: "marcador-f7a8e",
-            storageBucket: "marcador-f7a8e.firebasestorage.app",
-            messagingSenderId: "1047331307941",
-            appId: "1:1047331307941:web:61f74aeebbb7d85ee4a84c",
-            measurementId: "G-3MWDPPCPSC"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
         const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
         const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
 
@@ -403,22 +388,22 @@
 
         renderizarEstructura(configActual);
 
-        db.collection('scoreboard').doc('live_config').onSnapshot((doc) => {
-            if (doc.exists) {
-                configActual = { ...configActual, ...doc.data() };
-                renderizarEstructura(configActual);
-            }
-        });
-
         const client = mqtt.connect(BROKER_URL, { reconnectPeriod: 1000 });
         client.on('connect', () => {
             client.subscribe(`${CANAL_BASE}/vivo`);
+            client.subscribe(`${CANAL_BASE}/config`);
         });
         client.on('message', (topic, message) => {
             if (topic === `${CANAL_BASE}/vivo`) {
                 try {
                     datosVivos = JSON.parse(message.toString());
-                    aplicarDatosVivos();
+                    aplicarDatosEnPreview();
+                } catch (e) {}
+            } else if (topic === `${CANAL_BASE}/config`) {
+                try {
+                    const nuevaCfg = JSON.parse(message.toString());
+                    configActual = { ...configActual, ...nuevaCfg };
+                    renderizarEstructura(configActual);
                 } catch (e) {}
             }
         });
