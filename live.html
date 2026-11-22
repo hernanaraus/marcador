@@ -362,4 +362,269 @@
                     .lm-timer { font-size: ${clockFontSize}px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: ${Math.round(clockFontSize * 2.25)}px; text-align: center; line-height: 1; }
                     .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: rgba(255,255,255,0.08); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.22); line-height: 1; }
                 </style>
-                <
+                <div class="lm-bar">
+                    <div class="lm-league-box">${ligaHTML}</div>
+                    <div class="lm-track">
+                        <div class="lm-team-wing">
+                            ${img1HTML}
+                            <div class="lm-team-meta">
+                                <div class="lm-team-name" style="color: ${cfg.text1Color}; text-shadow: ${textShadow1};">${cfg.name1}</div>
+                                <div class="lm-fouls" id="fouls1">${faltasBase}</div>
+                            </div>
+                        </div>
+                        <div class="lm-scores-elevated">
+                            ${topBadgeHTML}
+                            <div class="lm-pts-slot" id="slotPoints1"><div class="lm-pts" id="points1">0</div></div>
+                            <div class="lm-score-dash">-</div>
+                            <div class="lm-pts-slot" id="slotPoints2"><div class="lm-pts" id="points2">0</div></div>
+                            ${shotClockHTML}
+                        </div>
+                        <div class="lm-team-wing away">
+                            ${img2HTML}
+                            <div class="lm-team-meta">
+                                <div class="lm-team-name" style="color: ${cfg.text2Color}; text-shadow: ${textShadow2};">${cfg.name2}</div>
+                                <div class="lm-fouls" id="fouls2">${faltasBase}</div>
+                            </div>
+                        </div>
+                        <div class="lm-clock-box">
+                            <div class="lm-timer" id="timer">10:00</div>
+                            <div class="lm-period" id="period">Q1</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            aplicarDatosVivos(true);
+        }
+
+        function dispararAnimacionCanasta(slotId, puntosElementId, nuevoValor, delta) {
+            const slot = document.getElementById(slotId);
+            const ptsEl = document.getElementById(puntosElementId);
+            if (!slot || !ptsEl) return;
+
+            const oldBadge = slot.querySelector('.pts-pop-badge');
+            if (oldBadge) oldBadge.remove();
+
+            const badge = document.createElement('div');
+            badge.className = 'pts-pop-badge ' + (delta === 3 ? 'triple' : 'doble');
+            badge.textContent = '+' + delta;
+            slot.appendChild(badge);
+
+            setTimeout(() => {
+                ptsEl.textContent = nuevoValor;
+            }, 340);
+
+            setTimeout(() => {
+                if (badge && badge.parentNode) badge.remove();
+            }, 1200);
+        }
+
+        function actualizarFaltas(id, cantidad) {
+            const cont = document.getElementById(id);
+            if (!cont) return;
+            const barras = cont.querySelectorAll('.foul-bar');
+            const num = parseInt(cantidad, 10) || 0;
+            barras.forEach((b, idx) => {
+                const n = idx + 1;
+                const esBonus = n === 5;
+                if (n <= num) {
+                    const col = esBonus ? configActual.foulBonusColor : configActual.foulActiveColor;
+                    b.style.background = col;
+                    b.style.border = "1px solid #111111";
+                } else {
+                    b.style.background = "rgba(0,0,0,0.35)";
+                    b.style.border = "1px solid rgba(255,255,255,0.45)";
+                }
+            });
+        }
+
+        function formatearPeriodo(momentRaw, overtimeLed) {
+            if (overtimeLed !== undefined && overtimeLed !== "" && overtimeLed !== "0") return "OT";
+            const n = parseInt(String(momentRaw).replace(/[^0-9]/g, ""), 10);
+            if (isNaN(n) || n <= 0) return "Q1";
+            if (n <= 4) return "Q" + n;
+            return "OT" + (n - 4);
+        }
+
+        function aplicarDatosVivos(esRenderInicial = false) {
+            const l = datosVivos;
+            if (!l) return;
+            const p1Str = (l.points_1 || l.points1 || l.score_1 || l.score1 || "").replace(/[^0-9]/g, "");
+            const p2Str = (l.points_2 || l.points2 || l.score_2 || l.score2 || "").replace(/[^0-9]/g, "");
+
+            if (p1Str !== "") {
+                const num1 = parseInt(p1Str, 10);
+                const el1 = document.getElementById("points1");
+                if (el1) {
+                    if (!esRenderInicial && prevPts1 !== null && (num1 - prevPts1 === 2 || num1 - prevPts1 === 3)) {
+                        dispararAnimacionCanasta("slotPoints1", "points1", p1Str, num1 - prevPts1);
+                    } else {
+                        el1.textContent = p1Str;
+                    }
+                }
+                prevPts1 = num1;
+            }
+
+            if (p2Str !== "") {
+                const num2 = parseInt(p2Str, 10);
+                const el2 = document.getElementById("points2");
+                if (el2) {
+                    if (!esRenderInicial && prevPts2 !== null && (num2 - prevPts2 === 2 || num2 - prevPts2 === 3)) {
+                        dispararAnimacionCanasta("slotPoints2", "points2", p2Str, num2 - prevPts2);
+                    } else {
+                        el2.textContent = p2Str;
+                    }
+                }
+                prevPts2 = num2;
+            }
+
+            const rawShot = l.shotclock ?? l.shot_clock ?? l.shot ?? l.posesion;
+            if (configActual.showShotClock && rawShot !== undefined) {
+                const sc = document.getElementById("shotclock");
+                if (sc) sc.textContent = String(rawShot).replace(/[^0-9]/g, "");
+            }
+
+            if (l.fouls_1 !== undefined) actualizarFaltas("fouls1", l.fouls_1.replace(/[^0-9]/g, ""));
+            if (l.fouls_2 !== undefined) actualizarFaltas("fouls2", l.fouls_2.replace(/[^0-9]/g, ""));
+            if (l.moment !== undefined && l.moment !== "") {
+                const per = document.getElementById("period");
+                if (per) per.textContent = formatearPeriodo(l.moment, l.overtime_led);
+            }
+            if (l.timer !== undefined && l.timer !== "") {
+                const tim = document.getElementById("timer");
+                if (tim) tim.textContent = l.timer;
+            }
+        }
+
+        /* REDES SOCIALES @TIEMPOFUERA_CL */
+        let turnoRedSocial = 0;
+        let socialHideTimeout = null;
+        let socialAutoInterval = null;
+        let ultimoIntervaloMs = 150000;
+
+        function mostrarBannerSocial(forzar = false) {
+            if (!forzar && configActual.socialAutoEnabled === false) return;
+            const wrap = document.getElementById('socialWrap');
+            const card = document.getElementById('socialCard');
+            if (!wrap || !card) return;
+
+            if (socialHideTimeout) clearTimeout(socialHideTimeout);
+
+            if (turnoRedSocial === 0) {
+                card.innerHTML = `
+                    <div class="social-icon ig">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                    </div>
+                    <div class="social-texts">
+                        <span class="social-cta">Síguenos en Instagram</span>
+                        <span class="social-handle">@tiempofuera_cl</span>
+                    </div>
+                `;
+            } else {
+                card.innerHTML = `
+                    <div class="social-icon yt">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                    </div>
+                    <div class="social-texts">
+                        <span class="social-cta">¡Suscríbete en YouTube!</span>
+                        <span class="social-handle">@tiempofuera_cl</span>
+                    </div>
+                `;
+            }
+
+            turnoRedSocial = (turnoRedSocial + 1) % 2;
+            wrap.classList.add('active');
+
+            socialHideTimeout = setTimeout(() => {
+                wrap.classList.remove('active');
+            }, 11000);
+        }
+
+        function asegurarCicloSocial() {
+            const nuevoMs = Math.max(20, parseInt(configActual.socialIntervalSec, 10) || 150) * 1000;
+            if (!socialAutoInterval || nuevoMs !== ultimoIntervaloMs) {
+                if (socialAutoInterval) clearInterval(socialAutoInterval);
+                ultimoIntervaloMs = nuevoMs;
+                socialAutoInterval = setInterval(() => mostrarBannerSocial(false), nuevoMs);
+            }
+        }
+
+        setTimeout(() => mostrarBannerSocial(false), 3000);
+        asegurarCicloSocial();
+
+        renderizarEstructura(configActual);
+
+        let ultimoPaqueteTs = Date.now();
+        let client = null;
+
+        function iniciarConexionExclusivaLive() {
+            if (client) {
+                try { client.end(true); } catch (e) {}
+            }
+            const uniqueId = 'tf_live_obs_' + Math.random().toString(16).slice(2, 10);
+            client = mqtt.connect(BROKER_URL, {
+                clientId: uniqueId,
+                keepalive: 10,
+                reconnectPeriod: 800,
+                connectTimeout: 4000,
+                clean: true
+            });
+
+            client.on('connect', () => {
+                ultimoPaqueteTs = Date.now();
+                client.subscribe(`${CANAL_BASE}/vivo`, { qos: 0 });
+                client.subscribe(`${CANAL_BASE}/config`, { qos: 1 });
+                client.subscribe(`${CANAL_BASE}/cmd`, { qos: 1 });
+            });
+
+            client.on('message', (topic, message) => {
+                ultimoPaqueteTs = Date.now();
+                if (topic === `${CANAL_BASE}/vivo`) {
+                    try {
+                        datosVivos = JSON.parse(message.toString());
+                        aplicarDatosVivos(false);
+                    } catch (e) {}
+                } else if (topic === `${CANAL_BASE}/config`) {
+                    try {
+                        const nuevaCfg = JSON.parse(message.toString());
+                        configActual = { ...configActual, ...nuevaCfg };
+                        configLista = true;
+                        try {
+                            localStorage.setItem('tf_live_cached_cfg', JSON.stringify(configActual));
+                        } catch (e) {}
+                        renderizarEstructura(configActual);
+                        asegurarCicloSocial();
+                    } catch (e) {}
+                } else if (topic === `${CANAL_BASE}/cmd`) {
+                    try {
+                        const cmd = JSON.parse(message.toString());
+                        if (cmd.action === 'social_now') {
+                            if (cmd.network === 'ig') turnoRedSocial = 0;
+                            if (cmd.network === 'yt') turnoRedSocial = 1;
+                            mostrarBannerSocial(true);
+                        }
+                    } catch (e) {}
+                }
+            });
+        }
+
+        iniciarConexionExclusivaLive();
+
+        setInterval(() => {
+            if (client && client.connected) {
+                client.publish(`${CANAL_BASE}/ping_live`, String(Date.now()), { qos: 0 });
+            } else {
+                iniciarConexionExclusivaLive();
+            }
+            if (Date.now() - ultimoPaqueteTs > 15000) {
+                iniciarConexionExclusivaLive();
+            }
+        }, 8000);
+    </script>
+</body>
+</html>
