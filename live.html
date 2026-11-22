@@ -21,7 +21,7 @@
             transform: translateX(-50%) translateY(0) scale(var(--sb-scale, 1));
             transform-origin: bottom center;
             opacity: 1;
-            transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
             will-change: opacity, transform;
         }
         .obs-anchor.sb-hidden {
@@ -31,33 +31,34 @@
         }
         .social-pill-wrap {
             position: absolute;
-            right: calc(100% + 18px);
-            top: 50%;
-            transform: translateY(-50%) translateX(24px);
+            top: 44px;
+            left: 48px;
+            transform: translateX(-36px);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-            z-index: 1;
+            transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+            z-index: 20;
+            filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.85));
         }
         .social-pill-wrap.active {
             opacity: 1;
-            transform: translateY(-50%) translateX(0);
+            transform: translateX(0);
         }
         .social-pill {
             display: flex;
             align-items: center;
-            gap: 11px;
+            gap: 12px;
             background: linear-gradient(145deg, #1b1d24 0%, #0d0e12 100%);
             border: 1.5px solid var(--sb-accent, #e3b857);
             border-radius: 10px;
-            padding: 8px 16px 8px 12px;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+            padding: 9px 18px 9px 13px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
             white-space: nowrap;
             font-family: 'Barlow Condensed', sans-serif;
         }
         .social-icon {
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -77,14 +78,14 @@
             line-height: 1.05;
         }
         .social-cta {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: var(--sb-accent, #e3b857);
         }
         .social-handle {
-            font-size: 21px;
+            font-size: 22px;
             font-weight: 800;
             color: #ffffff;
             letter-spacing: 0.4px;
@@ -92,10 +93,11 @@
     </style>
 </head>
 <body>
-    <div class="obs-anchor" id="obsAnchor">
-        <div class="social-pill-wrap" id="socialWrap">
-            <div class="social-pill" id="socialCard"></div>
-        </div>
+    <div class="social-pill-wrap" id="socialWrap">
+        <div class="social-pill" id="socialCard"></div>
+    </div>
+
+    <div class="obs-anchor sb-hidden" id="obsAnchor">
         <div id="marcadorMount"></div>
     </div>
 
@@ -143,7 +145,16 @@
             logoTop: ''
         };
 
+        let configLista = false;
         let datosVivos = {};
+
+        try {
+            const cache = localStorage.getItem('tf_live_cached_cfg');
+            if (cache) {
+                configActual = { ...configActual, ...JSON.parse(cache) };
+                configLista = true;
+            }
+        } catch (e) {}
 
         function aclararHex(hex, porcentaje) {
             hex = (hex || '#1c1e24').replace('#', '');
@@ -177,15 +188,21 @@
 
         function aplicarVisibilidadYEscala(cfg) {
             const anchor = document.getElementById('obsAnchor');
-            if (!anchor) return;
-            const escala = parseFloat(cfg.boardScale) || 1.0;
-            anchor.style.setProperty('--sb-scale', escala);
-            anchor.style.setProperty('--sb-accent', cfg.accentColor || '#e3b857');
+            const socialWrap = document.getElementById('socialWrap');
+            const accent = cfg.accentColor || '#e3b857';
 
-            if (cfg.visible === false) {
-                anchor.classList.add('sb-hidden');
-            } else {
-                anchor.classList.remove('sb-hidden');
+            if (anchor) {
+                const escala = parseFloat(cfg.boardScale) || 1.0;
+                anchor.style.setProperty('--sb-scale', escala);
+                anchor.style.setProperty('--sb-accent', accent);
+                if (!configLista || cfg.visible === false) {
+                    anchor.classList.add('sb-hidden');
+                } else {
+                    anchor.classList.remove('sb-hidden');
+                }
+            }
+            if (socialWrap) {
+                socialWrap.style.setProperty('--sb-accent', accent);
             }
         }
 
@@ -324,8 +341,14 @@
             if (!l) return;
             const p1 = (l.points_1 || l.points1 || l.score_1 || l.score1 || "").replace(/[^0-9]/g, "");
             const p2 = (l.points_2 || l.points2 || l.score_2 || l.score2 || "").replace(/[^0-9]/g, "");
-            if (p1 !== "") document.getElementById("points1").textContent = p1;
-            if (p2 !== "") document.getElementById("points2").textContent = p2;
+            if (p1 !== "") {
+                const el1 = document.getElementById("points1");
+                if (el1) el1.textContent = p1;
+            }
+            if (p2 !== "") {
+                const el2 = document.getElementById("points2");
+                if (el2) el2.textContent = p2;
+            }
             if (configActual.showShotClock && l.shotclock !== undefined) {
                 const sc = document.getElementById("shotclock");
                 if (sc) sc.textContent = l.shotclock.replace(/[^0-9]/g, "");
@@ -333,16 +356,17 @@
             if (l.fouls_1 !== undefined) actualizarFaltas("fouls1", l.fouls_1.replace(/[^0-9]/g, ""));
             if (l.fouls_2 !== undefined) actualizarFaltas("fouls2", l.fouls_2.replace(/[^0-9]/g, ""));
             if (l.moment !== undefined && l.moment !== "") {
-                document.getElementById("period").textContent = formatearPeriodo(l.moment, l.overtime_led);
+                const per = document.getElementById("period");
+                if (per) per.textContent = formatearPeriodo(l.moment, l.overtime_led);
             }
             if (l.timer !== undefined && l.timer !== "") {
-                document.getElementById("timer").textContent = l.timer;
+                const tim = document.getElementById("timer");
+                if (tim) tim.textContent = l.timer;
             }
         }
 
         let turnoRedSocial = 0;
         function mostrarBannerSocial() {
-            if (configActual.visible === false) return;
             const wrap = document.getElementById('socialWrap');
             const card = document.getElementById('socialCard');
             if (!wrap || !card) return;
@@ -383,30 +407,67 @@
             }, 12000);
         }
 
-        setTimeout(mostrarBannerSocial, 15000);
+        setTimeout(mostrarBannerSocial, 12000);
         setInterval(mostrarBannerSocial, 300000);
 
         renderizarEstructura(configActual);
 
-        const client = mqtt.connect(BROKER_URL, { reconnectPeriod: 1000 });
-        client.on('connect', () => {
-            client.subscribe(`${CANAL_BASE}/vivo`);
-            client.subscribe(`${CANAL_BASE}/config`);
-        });
-        client.on('message', (topic, message) => {
-            if (topic === `${CANAL_BASE}/vivo`) {
-                try {
-                    datosVivos = JSON.parse(message.toString());
-                    aplicarDatosVivos();
-                } catch (e) {}
-            } else if (topic === `${CANAL_BASE}/config`) {
-                try {
-                    const nuevaCfg = JSON.parse(message.toString());
-                    configActual = { ...configActual, ...nuevaCfg };
-                    renderizarEstructura(configActual);
-                } catch (e) {}
+        let ultimoPaqueteTs = Date.now();
+        let client = null;
+
+        function iniciarConexionExclusivaLive() {
+            if (client) {
+                try { client.end(true); } catch (e) {}
             }
-        });
+            const uniqueId = 'tf_live_obs_' + Math.random().toString(16).slice(2, 10);
+            client = mqtt.connect(BROKER_URL, {
+                clientId: uniqueId,
+                keepalive: 10,
+                reconnectPeriod: 800,
+                connectTimeout: 4000,
+                clean: true
+            });
+
+            client.on('connect', () => {
+                ultimoPaqueteTs = Date.now();
+                client.subscribe(`${CANAL_BASE}/vivo`, { qos: 0 });
+                client.subscribe(`${CANAL_BASE}/config`, { qos: 1 });
+            });
+
+            client.on('message', (topic, message) => {
+                ultimoPaqueteTs = Date.now();
+                if (topic === `${CANAL_BASE}/vivo`) {
+                    try {
+                        datosVivos = JSON.parse(message.toString());
+                        aplicarDatosVivos();
+                    } catch (e) {}
+                } else if (topic === `${CANAL_BASE}/config`) {
+                    try {
+                        const nuevaCfg = JSON.parse(message.toString());
+                        configActual = { ...configActual, ...nuevaCfg };
+                        configLista = true;
+                        try {
+                            localStorage.setItem('tf_live_cached_cfg', JSON.stringify(configActual));
+                        } catch (e) {}
+                        renderizarEstructura(configActual);
+                    } catch (e) {}
+                }
+            });
+        }
+
+        iniciarConexionExclusivaLive();
+
+        // Latido activo anti-congelamiento para PRISM Live y OBS (cada 8 segundos)
+        setInterval(() => {
+            if (client && client.connected) {
+                client.publish(`${CANAL_BASE}/ping_live`, String(Date.now()), { qos: 0 });
+            } else {
+                iniciarConexionExclusivaLive();
+            }
+            if (Date.now() - ultimoPaqueteTs > 15000) {
+                iniciarConexionExclusivaLive();
+            }
+        }, 8000);
     </script>
 </body>
 </html>
