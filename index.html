@@ -365,9 +365,9 @@
         </div>
     </div>
 
-    <!-- TIPOGRAFÍA Y PROPORCIONES -->
+    <!-- TIPOGRAFÍA, ESCALA Y POSICIÓN VERTICAL -->
     <div class="card">
-        <h2>Tipografía y Escala en Pantalla</h2>
+        <h2>Tipografía, Escala y Altura en Pantalla</h2>
         <div class="field">
             <label>Fuente del Marcador</label>
             <select id="fontFamily" onchange="actualizarTodo()">
@@ -381,9 +381,15 @@
                 <option value="'Anton', sans-serif">Anton (Extra Bold)</option>
             </select>
         </div>
-        <div class="field">
-            <label>Escala General en OBS / PRISM <span class="val" id="val_boardScale">1.00x</span></label>
-            <input type="range" id="boardScale" min="0.65" max="1.45" step="0.05" value="1.0" oninput="actualizarTodo()">
+        <div class="field-row">
+            <div class="field">
+                <label>Escala General <span class="val" id="val_boardScale">1.00x</span></label>
+                <input type="range" id="boardScale" min="0.65" max="1.45" step="0.05" value="1.0" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Altura desde abajo <span class="val" id="val_boardBottom">36px</span></label>
+                <input type="range" id="boardBottom" min="0" max="180" step="2" value="36" oninput="actualizarTodo()">
+            </div>
         </div>
         <div class="field-row">
             <div class="field">
@@ -456,8 +462,8 @@
     <div class="card">
         <h2>Reloj de Posesión (24s / 14s)</h2>
         <label class="check-row">
-            <input type="checkbox" id="showShotClock" checked onchange="actualizarTodo()">
-            Mostrar Reloj de Posesión bajo el Marcador
+            <input type="checkbox" id="showShotClock" checked onchange="alternarRelojPosesionEnVivo()">
+            Mostrar Reloj de Posesión en Vivo (24s)
         </label>
         <div class="field-row">
             <div class="field">
@@ -529,6 +535,7 @@
 
         document.getElementById('val_ligaSize').textContent = getNum('ligaSize') + 'px';
         document.getElementById('val_boardScale').textContent = getNum('boardScale').toFixed(2) + 'x';
+        document.getElementById('val_boardBottom').textContent = getNum('boardBottom') + 'px';
         document.getElementById('val_teamLogoSize').textContent = getNum('teamLogoSize') + 'px';
         document.getElementById('val_teamFontSize').textContent = getNum('teamFontSize') + 'px';
         document.getElementById('val_scoreBoxSize').textContent = getNum('scoreBoxSize') + 'px';
@@ -540,6 +547,7 @@
         return {
             visible: marcadorVisible,
             boardScale: getNum('boardScale'),
+            boardBottom: getNum('boardBottom'),
             fontFamily: getVal('fontFamily'),
             accentColor: getVal('accentColor'),
             foulActiveColor: getVal('foulActiveColor'),
@@ -591,10 +599,10 @@
         wrapper.style.transform = `scale(${cfg.boardScale})`;
         wrapper.classList.toggle('is-hidden', !cfg.visible);
 
-        const bg1Light = aclararHex(cfg.bg1Color, 0.24);
-        const bg1Dark = oscurecerHex(cfg.bg1Color, 0.25);
-        const bg2Light = aclararHex(cfg.bg2Color, 0.24);
-        const bg2Dark = oscurecerHex(cfg.bg2Color, 0.25);
+        const bg1Light = aclararHex(cfg.bg1Color, 0.22);
+        const bg1Dark = oscurecerHex(cfg.bg1Color, 0.14);
+        const bg2Light = aclararHex(cfg.bg2Color, 0.22);
+        const bg2Dark = oscurecerHex(cfg.bg2Color, 0.14);
 
         const wingWidth = calcularAnchoAla(cfg);
         const ligaBoxHeight = Math.max(92, cfg.ligaSize || 92);
@@ -623,7 +631,7 @@
         let faltasDemo = '';
         for (let i = 1; i <= 5; i++) {
             const activo = i <= 2;
-            const col = activo ? cfg.foulActiveColor : 'rgba(0,0,0,0.52)';
+            const col = activo ? cfg.foulActiveColor : 'rgba(0,0,0,0.42)';
             const brd = activo ? '1px solid #111' : '1px solid rgba(255,255,255,0.38)';
             faltasDemo += `<span class="foul-bar" style="background:${col}; border:${brd};"></span>`;
         }
@@ -633,34 +641,34 @@
 
         document.getElementById('previewMount').innerHTML = `
             <style>
-                .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.88)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7)); }
+                .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35)); }
                 .lm-league-box { height: ${ligaBoxHeight}px; min-width: 86px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px; }
-                .lm-league-box img { height: ${cfg.ligaSize}px; width: auto; max-width: ${Math.round(cfg.ligaSize * 1.35)}px; object-fit: contain; filter: drop-shadow(0 5px 12px rgba(0,0,0,0.9)); }
+                .lm-league-box img { height: ${cfg.ligaSize}px; width: auto; max-width: ${Math.round(cfg.ligaSize * 1.35)}px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45)); }
                 .lm-track { display: inline-flex; align-items: center; position: relative; }
-                .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -4px 10px rgba(0,0,0,0.55); overflow: hidden; }
-                .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 2px, transparent 2px, transparent 6px); pointer-events: none; }
+                .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22); overflow: hidden; }
+                .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 6px); pointer-events: none; }
                 .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; border-left: none; border-radius: 0; }
-                .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.8)); }
+                .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; }
                 .lm-team-meta { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-width: 0; }
-                .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 3px rgba(0,0,0,0.85), 0 -1px 0 rgba(255,255,255,0.2); }
+                .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.55); }
                 .lm-fouls { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; width: 100%; }
                 .lm-team-wing.away .lm-fouls { flex-direction: row-reverse; justify-content: center; }
                 .foul-bar { width: 19px; height: 5px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
-                .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.14)} 0%, ${cfg.scoreBgColor} 50%, ${oscurecerHex(cfg.scoreBgColor, 0.35)} 100%); padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; box-shadow: 0 10px 24px rgba(0,0,0,0.92), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -4px 10px rgba(0,0,0,0.7); z-index: 3; }
+                .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.14)} 0%, ${cfg.scoreBgColor} 55%, ${oscurecerHex(cfg.scoreBgColor, 0.18)} 100%); padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22); z-index: 3; }
                 .lm-top-overlay-img { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; }
-                .lm-top-overlay-img img { width: auto; max-width: 210px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.95)); }
-                .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.15)}, ${cfg.scoreBgColor}); border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; box-shadow: 0 5px 12px rgba(0,0,0,0.92), inset 0 1px 0 rgba(255,255,255,0.25); z-index: 5; }
-                .lm-pts { font-size: ${ptsFontSize}px; font-weight: 800; color: ${cfg.scoreTextColor}; min-width: ${ptsMinWidth}px; text-align: center; font-variant-numeric: tabular-nums; line-height: 0.92; letter-spacing: -0.5px; text-shadow: 0 3px 8px rgba(0,0,0,0.9); }
+                .lm-top-overlay-img img { width: auto; max-width: 210px; object-fit: contain; }
+                .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.15)}, ${cfg.scoreBgColor}); border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; box-shadow: 0 3px 8px rgba(0,0,0,0.45); z-index: 5; }
+                .lm-pts { font-size: ${ptsFontSize}px; font-weight: 800; color: ${cfg.scoreTextColor}; min-width: ${ptsMinWidth}px; text-align: center; font-variant-numeric: tabular-nums; line-height: 0.92; letter-spacing: -0.5px; }
                 .lm-score-dash { font-size: ${dashSize}px; font-weight: 800; color: ${cfg.accentColor}; line-height: 1; opacity: 0.85; padding: 0 1px; }
-                .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, ${aclararHex(cfg.shotBgColor, 0.15)}, ${cfg.shotBgColor}); color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; box-shadow: 0 6px 14px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.22); z-index: 4; }
-                .lm-clock-box { display: flex; align-items: center; height: 60px; background: linear-gradient(180deg, ${aclararHex(cfg.clockBgColor, 0.15)} 0%, ${cfg.clockBgColor} 55%, ${oscurecerHex(cfg.clockBgColor, 0.3)} 100%); padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -4px 10px rgba(0,0,0,0.55); }
-                .lm-timer { font-size: ${clockFontSize}px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: ${Math.round(clockFontSize * 2.25)}px; text-align: center; line-height: 1; text-shadow: 0 2px 5px rgba(0,0,0,0.85); }
-                .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.25)); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); box-shadow: inset 0 1px 0 rgba(255,255,255,0.15); line-height: 1; }
+                .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, ${aclararHex(cfg.shotBgColor, 0.15)}, ${cfg.shotBgColor}); color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; box-shadow: 0 3px 8px rgba(0,0,0,0.45); z-index: 4; }
+                .lm-clock-box { display: flex; align-items: center; height: 60px; background: linear-gradient(180deg, ${aclararHex(cfg.clockBgColor, 0.15)} 0%, ${cfg.clockBgColor} 55%, ${oscurecerHex(cfg.clockBgColor, 0.16)} 100%); padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
+                .lm-timer { font-size: ${clockFontSize}px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: ${Math.round(clockFontSize * 2.25)}px; text-align: center; line-height: 1; }
+                .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.18)); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); line-height: 1; }
             </style>
             <div class="lm-bar">
                 <div class="lm-league-box">${ligaHTML}</div>
                 <div class="lm-track">
-                    <div class="lm-team-wing" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
+                    <div class="lm-team-wing" style="background: linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
                         ${img1HTML}
                         <div class="lm-team-meta">
                             <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
@@ -674,7 +682,7 @@
                         <div class="lm-pts">58</div>
                         ${shotClockHTML}
                     </div>
-                    <div class="lm-team-wing away" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
+                    <div class="lm-team-wing away" style="background: linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
                         ${img2HTML}
                         <div class="lm-team-meta">
                             <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
@@ -710,13 +718,19 @@
         const cfg = leerConfiguracionUI();
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch (e) {}
         if (publicarEnNube(cfg)) {
-            mostrarToast('✅ Diseño y logos enviados a PRISM / OBS');
+            mostrarToast('✅ Diseño y ajustes enviados a PRISM / OBS');
         } else {
             conectarMQTT(() => {
                 publicarEnNube(cfg);
-                mostrarToast('✅ Diseño y logos enviados a PRISM / OBS');
+                mostrarToast('✅ Diseño y ajustes enviados a PRISM / OBS');
             });
         }
+    }
+
+    function alternarRelojPosesionEnVivo() {
+        const activo = document.getElementById('showShotClock').checked;
+        guardarYTransmitir();
+        mostrarToast(activo ? '⏱️ Reloj 24s activado en el live' : '🚫 Reloj 24s oculto en el live');
     }
 
     function alternarVisibilidad() {
@@ -807,7 +821,7 @@
                 btn.textContent = '🙈 Marcador Oculto en Vivo';
             }
             const campos = [
-                'boardScale', 'fontFamily', 'accentColor', 'foulActiveColor', 'foulBonusColor',
+                'boardScale', 'boardBottom', 'fontFamily', 'accentColor', 'foulActiveColor', 'foulBonusColor',
                 'ligaSize', 'teamLogoSize', 'teamFontSize', 'scoreBoxSize', 'clockFontSize',
                 'topBadgeMode', 'topImgSize', 'topImgOffset', 'topTextValue', 'topTextColor', 'topTextSize',
                 'name1', 'bg1Color', 'text1Color', 'name2', 'bg2Color', 'text2Color',
