@@ -5,6 +5,8 @@
     <title>Marcador En Vivo — Tiempo Fuera</title>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
         html, body {
             margin: 0;
@@ -14,7 +16,6 @@
             background: transparent !important;
             overflow: hidden;
         }
-        /* Anclado en la parte inferior de la pantalla */
         .obs-anchor {
             position: absolute;
             bottom: 54px;
@@ -25,14 +26,11 @@
             transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
             will-change: opacity, transform;
         }
-        /* Transición oculta: desvanece bajando para luego aparecer subiendo */
         .obs-anchor.sb-hidden {
             opacity: 0;
             transform: translateX(-50%) translateY(42px) scale(calc(var(--sb-scale, 1) * 0.97));
             pointer-events: none;
         }
-
-        /* Cápsula de Redes Sociales al costado izquierdo */
         .social-pill-wrap {
             position: absolute;
             right: calc(100% + 18px);
@@ -104,6 +102,19 @@
     </div>
 
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4KJHj5CxSG3zmzvBqycYI0MrK5aLOjco",
+            authDomain: "marcador-b71de.firebaseapp.com",
+            projectId: "marcador-b71de",
+            storageBucket: "marcador-b71de.firebasestorage.app",
+            messagingSenderId: "290408475283",
+            appId: "1:290408475283:web:373133716de3f36afa3b66",
+            measurementId: "G-CJZ0SJ2SWY"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
         const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
 
@@ -206,7 +217,6 @@
             const teamLogoSize = cfg.teamLogoSize || 44;
             const teamFontSize = cfg.teamFontSize || 25;
 
-            // Proporciones dinámicas de puntos y reloj
             const ptsFontSize = cfg.scoreBoxSize || 48;
             const scoreBoxHeight = Math.round(ptsFontSize * 1.42);
             const ptsMinWidth = Math.round(ptsFontSize * 1.18);
@@ -335,4 +345,81 @@
             }
             if (l.fouls_1 !== undefined) actualizarFaltas("fouls1", l.fouls_1.replace(/[^0-9]/g, ""));
             if (l.fouls_2 !== undefined) actualizarFaltas("fouls2", l.fouls_2.replace(/[^0-9]/g, ""));
-            if (l.moment !== undefi
+            if (l.moment !== undefined && l.moment !== "") {
+                document.getElementById("period").textContent = formatearPeriodo(l.moment, l.overtime_led);
+            }
+            if (l.timer !== undefined && l.timer !== "") {
+                document.getElementById("timer").textContent = l.timer;
+            }
+        }
+
+        let turnoRedSocial = 0;
+        function mostrarBannerSocial() {
+            if (configActual.visible === false) return;
+            const wrap = document.getElementById('socialWrap');
+            const card = document.getElementById('socialCard');
+            if (!wrap || !card) return;
+
+            if (turnoRedSocial === 0) {
+                card.innerHTML = `
+                    <div class="social-icon ig">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                    </div>
+                    <div class="social-texts">
+                        <span class="social-cta">Síguenos en Instagram</span>
+                        <span class="social-handle">@tiempofuera_cl</span>
+                    </div>
+                `;
+            } else {
+                card.innerHTML = `
+                    <div class="social-icon yt">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                    </div>
+                    <div class="social-texts">
+                        <span class="social-cta">¡Suscríbete!</span>
+                        <span class="social-handle">@TiempoFuera</span>
+                    </div>
+                `;
+            }
+
+            turnoRedSocial = (turnoRedSocial + 1) % 2;
+            wrap.classList.add('active');
+
+            setTimeout(() => {
+                wrap.classList.remove('active');
+            }, 12000);
+        }
+
+        setTimeout(mostrarBannerSocial, 15000);
+        setInterval(mostrarBannerSocial, 300000);
+
+        renderizarEstructura(configActual);
+
+        db.collection('scoreboard').doc('live_config').onSnapshot((doc) => {
+            if (doc.exists) {
+                configActual = { ...configActual, ...doc.data() };
+                renderizarEstructura(configActual);
+            }
+        });
+
+        const client = mqtt.connect(BROKER_URL, { reconnectPeriod: 1000 });
+        client.on('connect', () => {
+            client.subscribe(`${CANAL_BASE}/vivo`);
+        });
+        client.on('message', (topic, message) => {
+            if (topic === `${CANAL_BASE}/vivo`) {
+                try {
+                    datosVivos = JSON.parse(message.toString());
+                    aplicarDatosVivos();
+                } catch (e) {}
+            }
+        });
+    </script>
+</body>
+</html>
