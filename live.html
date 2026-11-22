@@ -397,7 +397,7 @@
             if (topic === `${CANAL_BASE}/vivo`) {
                 try {
                     datosVivos = JSON.parse(message.toString());
-                    aplicarDatosEnPreview();
+                    aplicarDatosVivos();
                 } catch (e) {}
             } else if (topic === `${CANAL_BASE}/config`) {
                 try {
