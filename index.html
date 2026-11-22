@@ -476,4 +476,510 @@
                 <input type="range" id="teamLogoSize" min="28" max="62" value="44" oninput="actualizarTodo()">
             </div>
             <div class="field">
-                <label>Texto Equipos <span class="val" id="val_teamFontSize">
+                <label>Texto Equipos <span class="val" id="val_teamFontSize">25px</span></label>
+                <input type="range" id="teamFontSize" min="16" max="36" value="25" oninput="actualizarTodo()">
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Tamaño Puntos <span class="val" id="val_scoreBoxSize">48px</span></label>
+                <input type="range" id="scoreBoxSize" min="34" max="68" value="48" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Tamaño Reloj <span class="val" id="val_clockFontSize">32px</span></label>
+                <input type="range" id="clockFontSize" min="22" max="44" value="32" oninput="actualizarTodo()">
+            </div>
+        </div>
+    </div>
+
+    <!-- COLORES DEL MARCADOR Y RELOJ -->
+    <div class="card">
+        <h2>Colores de Puntos, Reloj y Faltas</h2>
+        <div class="field-row">
+            <div class="field">
+                <label>Borde / Acento</label>
+                <input type="color" id="accentColor" value="#e3b857" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Fondo Puntos</label>
+                <input type="color" id="scoreBgColor" value="#0c0d10" oninput="actualizarTodo()">
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Números Puntos</label>
+                <input type="color" id="scoreTextColor" value="#e3b857" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Fondo Reloj</label>
+                <input type="color" id="clockBgColor" value="#141519" oninput="actualizarTodo()">
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Números Reloj</label>
+                <input type="color" id="clockTextColor" value="#ffffff" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Texto Cuarto (Q1)</label>
+                <input type="color" id="periodTextColor" value="#e3b857" oninput="actualizarTodo()">
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Falta Activa (1-4)</label>
+                <input type="color" id="foulActiveColor" value="#ffe600" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Falta Bonus (5ta)</label>
+                <input type="color" id="foulBonusColor" value="#ff1744" oninput="actualizarTodo()">
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="toast" id="toastMsg">Configuración enviada a PRISM / OBS</div>
+
+<script>
+    const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
+    const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
+    const STORAGE_KEY = 'tf_scoreboard_studio_v7';
+
+    let mqttClient = null;
+    let estadoImagenes = { logoLiga: '', logo1: '', logo2: '', logoTop: '' };
+    let marcadorVisible = true;
+    let autoSyncTimer = null;
+
+    function mostrarToast(texto) {
+        const t = document.getElementById('toastMsg');
+        t.textContent = texto;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function obtenerLuminosidad(hex) {
+        hex = (hex || '#1c1e24').replace('#', '');
+        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+        const r = parseInt(hex.substring(0, 2), 16) || 0;
+        const g = parseInt(hex.substring(2, 4), 16) || 0;
+        const b = parseInt(hex.substring(4, 6), 16) || 0;
+        return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    }
+
+    function aclararHex(hex, porcentaje) {
+        hex = (hex || '#1c1e24').replace('#', '');
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        r = Math.min(255, Math.floor(r + (255 - r) * porcentaje));
+        g = Math.min(255, Math.floor(g + (255 - g) * porcentaje));
+        b = Math.min(255, Math.floor(b + (255 - b) * porcentaje));
+        return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function oscurecerHex(hex, porcentaje) {
+        hex = (hex || '#1c1e24').replace('#', '');
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        r = Math.max(0, Math.floor(r * (1 - porcentaje)));
+        g = Math.max(0, Math.floor(g * (1 - porcentaje)));
+        b = Math.max(0, Math.floor(b * (1 - porcentaje)));
+        return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function calcularEstiloTextoEquipo(bgColor, textColor) {
+        const lumBg = obtenerLuminosidad(bgColor);
+        const lumTxt = obtenerLuminosidad(textColor);
+        if (lumTxt > 0.55) {
+            return lumBg > 0.45
+                ? '0 1px 2px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.85)'
+                : '0 1px 2px rgba(0,0,0,0.75)';
+        } else {
+            return lumBg < 0.55
+                ? '0 1px 2px rgba(255,255,255,0.85), 0 0 3px rgba(255,255,255,0.65)'
+                : '0 1px 1px rgba(255,255,255,0.5)';
+        }
+    }
+
+    function leerConfiguracionUI() {
+        const getVal = (id) => document.getElementById(id).value;
+        const getNum = (id) => parseFloat(document.getElementById(id).value);
+        const getChk = (id) => document.getElementById(id).checked;
+
+        document.getElementById('val_ligaSize').textContent = getNum('ligaSize') + 'px';
+        document.getElementById('val_boardScale').textContent = getNum('boardScale').toFixed(2) + 'x';
+        document.getElementById('val_boardBottom').textContent = getNum('boardBottom') + 'px';
+        document.getElementById('val_teamLogoSize').textContent = getNum('teamLogoSize') + 'px';
+        document.getElementById('val_teamFontSize').textContent = getNum('teamFontSize') + 'px';
+        document.getElementById('val_scoreBoxSize').textContent = getNum('scoreBoxSize') + 'px';
+        document.getElementById('val_clockFontSize').textContent = getNum('clockFontSize') + 'px';
+        document.getElementById('val_topImgSize').textContent = getNum('topImgSize') + 'px';
+        document.getElementById('val_topImgOffset').textContent = getNum('topImgOffset') + 'px';
+        document.getElementById('val_topTextSize').textContent = getNum('topTextSize') + 'px';
+        document.getElementById('val_socialScale').textContent = getNum('socialScale').toFixed(2) + 'x';
+        document.getElementById('val_socialIntervalSec').textContent = getNum('socialIntervalSec') + 's';
+
+        const tSize = getNum('topTextSize');
+
+        return {
+            visible: marcadorVisible,
+            boardScale: getNum('boardScale'),
+            boardBottom: getNum('boardBottom'),
+            fontFamily: getVal('fontFamily'),
+            accentColor: getVal('accentColor'),
+            foulActiveColor: getVal('foulActiveColor'),
+            foulBonusColor: getVal('foulBonusColor'),
+            ligaSize: getNum('ligaSize'),
+            teamLogoSize: getNum('teamLogoSize'),
+            teamFontSize: getNum('teamFontSize'),
+            scoreBoxSize: getNum('scoreBoxSize'),
+            clockFontSize: getNum('clockFontSize'),
+            topBadgeEnabled: getChk('topBadgeEnabled'),
+            topBadgeMode: getVal('topBadgeMode'),
+            topImgSize: getNum('topImgSize'),
+            topImgOffset: getNum('topImgOffset'),
+            topTextValue: getVal('topTextValue'),
+            topTextColor: getVal('topTextColor'),
+            topTextSize: tSize,
+            topTextOffset: Math.round(tSize * 0.95),
+            showShotClock: getChk('showShotClock'),
+            name1: getVal('name1') || 'LOCAL',
+            bg1Color: getVal('bg1Color'),
+            text1Color: getVal('text1Color'),
+            name2: getVal('name2') || 'VISITA',
+            bg2Color: getVal('bg2Color'),
+            text2Color: getVal('text2Color'),
+            scoreBgColor: getVal('scoreBgColor'),
+            scoreTextColor: getVal('scoreTextColor'),
+            shotBgColor: getVal('shotBgColor'),
+            shotTextColor: getVal('shotTextColor'),
+            clockBgColor: getVal('clockBgColor'),
+            clockTextColor: getVal('clockTextColor'),
+            periodTextColor: getVal('periodTextColor'),
+            logoLiga: estadoImagenes.logoLiga,
+            logo1: estadoImagenes.logo1,
+            logo2: estadoImagenes.logo2,
+            logoTop: estadoImagenes.logoTop,
+            socialAutoEnabled: getChk('socialAutoEnabled'),
+            socialPosition: getVal('socialPosition'),
+            socialScale: getNum('socialScale'),
+            socialIntervalSec: getNum('socialIntervalSec')
+        };
+    }
+
+    function calcularAnchoAla(cfg) {
+        const maxChars = Math.max((cfg.name1 || '').length, (cfg.name2 || '').length);
+        const fSize = cfg.teamFontSize || 25;
+        const lSize = cfg.teamLogoSize || 44;
+        const anchoTexto = Math.max(140, maxChars * (fSize * 0.56) + 26);
+        return Math.round(anchoTexto + lSize + 28);
+    }
+
+    function renderizarPreview(cfg) {
+        const wrapper = document.getElementById('previewWrapper');
+        wrapper.style.transform = `scale(${cfg.boardScale})`;
+        wrapper.classList.toggle('is-hidden', !cfg.visible);
+
+        const lum1 = obtenerLuminosidad(cfg.bg1Color);
+        const lum2 = obtenerLuminosidad(cfg.bg2Color);
+
+        const bg1Light = lum1 > 0.65 ? aclararHex(cfg.bg1Color, 0.08) : aclararHex(cfg.bg1Color, 0.22);
+        const bg1Dark = lum1 > 0.65 ? oscurecerHex(cfg.bg1Color, 0.16) : oscurecerHex(cfg.bg1Color, 0.14);
+        const bg2Light = lum2 > 0.65 ? aclararHex(cfg.bg2Color, 0.08) : aclararHex(cfg.bg2Color, 0.22);
+        const bg2Dark = lum2 > 0.65 ? oscurecerHex(cfg.bg2Color, 0.16) : oscurecerHex(cfg.bg2Color, 0.14);
+
+        const stripe1 = lum1 > 0.55 ? 'rgba(0,0,0,0.085)' : 'rgba(255,255,255,0.048)';
+        const stripe2 = lum2 > 0.55 ? 'rgba(0,0,0,0.085)' : 'rgba(255,255,255,0.048)';
+
+        const textShadow1 = calcularEstiloTextoEquipo(cfg.bg1Color, cfg.text1Color);
+        const textShadow2 = calcularEstiloTextoEquipo(cfg.bg2Color, cfg.text2Color);
+
+        const wingWidth = calcularAnchoAla(cfg);
+        const ligaBoxHeight = Math.max(92, cfg.ligaSize || 92);
+        const teamLogoSize = cfg.teamLogoSize || 44;
+        const teamFontSize = cfg.teamFontSize || 25;
+
+        const ptsFontSize = cfg.scoreBoxSize || 48;
+        const scoreBoxHeight = Math.round(ptsFontSize * 1.42);
+        const ptsMinWidth = Math.round(ptsFontSize * 1.18);
+        const dashSize = Math.round(ptsFontSize * 0.62);
+        const clockFontSize = cfg.clockFontSize || 32;
+        const periodFontSize = Math.round(clockFontSize * 0.74);
+
+        const ligaHTML = cfg.logoLiga ? `<img src="${cfg.logoLiga}" alt="Liga">` : '';
+
+        let topBadgeHTML = '';
+        if (cfg.topBadgeEnabled) {
+            if (cfg.topBadgeMode === 'image' && cfg.logoTop) {
+                topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt=""></div>`;
+            } else if (cfg.topBadgeMode === 'text' && (cfg.topTextValue || '').trim() !== '') {
+                topBadgeHTML = `<div class="lm-top-overlay-text" style="top: -${cfg.topTextOffset}px; font-size: ${cfg.topTextSize}px; color: ${cfg.topTextColor};">${cfg.topTextValue}</div>`;
+            }
+        }
+
+        const shotClockHTML = cfg.showShotClock ? `<div class="lm-shotclock-badge">24</div>` : '';
+        let faltasDemo = '';
+        for (let i = 1; i <= 5; i++) {
+            const activo = i <= 2;
+            const col = activo ? cfg.foulActiveColor : 'rgba(0,0,0,0.35)';
+            const brd = activo ? '1px solid #111' : '1px solid rgba(255,255,255,0.45)';
+            faltasDemo += `<span class="foul-bar" style="background:${col}; border:${brd};"></span>`;
+        }
+
+        const img1HTML = cfg.logo1 ? `<img class="lm-team-logo" src="${cfg.logo1}" alt="">` : '';
+        const img2HTML = cfg.logo2 ? `<img class="lm-team-logo" src="${cfg.logo2}" alt="">` : '';
+
+        document.getElementById('previewMount').innerHTML = `
+            <style>
+                .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; background: transparent; }
+                .lm-league-box { height: ${ligaBoxHeight}px; min-width: 86px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px; background: transparent; }
+                .lm-league-box img { height: ${cfg.ligaSize}px; width: auto; max-width: ${Math.round(cfg.ligaSize * 1.35)}px; object-fit: contain; }
+                .lm-track { display: inline-flex; align-items: center; position: relative; background: transparent; }
+                .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; background: linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%); border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22); overflow: hidden; }
+                .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, ${stripe1} 0px, ${stripe1} 2px, transparent 2px, transparent 6px); pointer-events: none; z-index: 1; }
+                .lm-team-wing::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 48%, rgba(0,0,0,0.10) 100%); pointer-events: none; z-index: 1; }
+                .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; background: linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%); border-left: none; border-radius: 0; }
+                .lm-team-wing.away::before { background-image: repeating-linear-gradient(45deg, ${stripe2} 0px, ${stripe2} 2px, transparent 2px, transparent 6px); }
+                .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; }
+                .lm-team-meta { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-width: 0; }
+                .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .lm-fouls { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; width: 100%; }
+                .lm-team-wing.away .lm-fouls { flex-direction: row-reverse; justify-content: center; }
+                .foul-bar { width: 19px; height: 5px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+                .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.14)} 0%, ${cfg.scoreBgColor} 55%, ${oscurecerHex(cfg.scoreBgColor, 0.18)} 100%); padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22); z-index: 3; }
+                .lm-top-overlay-img { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; }
+                .lm-top-overlay-img img { width: auto; max-width: 320px; object-fit: contain; }
+                .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: ${cfg.scoreBgColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 3px 14px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; z-index: 5; }
+                .lm-pts { font-size: ${ptsFontSize}px; font-weight: 800; color: ${cfg.scoreTextColor}; min-width: ${ptsMinWidth}px; text-align: center; font-variant-numeric: tabular-nums; line-height: 0.92; letter-spacing: -0.5px; }
+                .lm-score-dash { font-size: ${dashSize}px; font-weight: 800; color: ${cfg.accentColor}; line-height: 1; opacity: 0.85; padding: 0 1px; }
+                .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: ${cfg.shotBgColor}; color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; z-index: 4; }
+                .lm-clock-box { display: flex; align-items: center; height: 60px; background: linear-gradient(180deg, ${aclararHex(cfg.clockBgColor, 0.14)} 0%, ${cfg.clockBgColor} 55%, ${oscurecerHex(cfg.clockBgColor, 0.16)} 100%); padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
+                .lm-timer { font-size: ${clockFontSize}px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: ${Math.round(clockFontSize * 2.25)}px; text-align: center; line-height: 1; }
+                .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: rgba(255,255,255,0.08); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.22); line-height: 1; }
+            </style>
+            <div class="lm-bar">
+                <div class="lm-league-box">${ligaHTML}</div>
+                <div class="lm-track">
+                    <div class="lm-team-wing">
+                        ${img1HTML}
+                        <div class="lm-team-meta">
+                            <div class="lm-team-name" style="color: ${cfg.text1Color}; text-shadow: ${textShadow1};">${cfg.name1}</div>
+                            <div class="lm-fouls">${faltasDemo}</div>
+                        </div>
+                    </div>
+                    <div class="lm-scores-elevated">
+                        ${topBadgeHTML}
+                        <div class="lm-pts">64</div>
+                        <div class="lm-score-dash">-</div>
+                        <div class="lm-pts">58</div>
+                        ${shotClockHTML}
+                    </div>
+                    <div class="lm-team-wing away">
+                        ${img2HTML}
+                        <div class="lm-team-meta">
+                            <div class="lm-team-name" style="color: ${cfg.text2Color}; text-shadow: ${textShadow2};">${cfg.name2}</div>
+                            <div class="lm-fouls">${faltasDemo}</div>
+                        </div>
+                    </div>
+                    <div class="lm-clock-box">
+                        <div class="lm-timer">04:32</div>
+                        <div class="lm-period">Q4</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function actualizarTodo() {
+        const cfg = leerConfiguracionUI();
+        renderizarPreview(cfg);
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+        } catch (e) {}
+
+        if (autoSyncTimer) clearTimeout(autoSyncTimer);
+        autoSyncTimer = setTimeout(() => {
+            guardarYTransmitir(false);
+        }, 250);
+    }
+
+    function publicarEnNube(cfg) {
+        if (mqttClient && mqttClient.connected) {
+            mqttClient.publish(`${CANAL_BASE}/config`, JSON.stringify(cfg), { qos: 1, retain: true });
+            return true;
+        }
+        return false;
+    }
+
+    function guardarYTransmitir(notificar = true) {
+        const cfg = leerConfiguracionUI();
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch (e) {}
+        if (publicarEnNube(cfg)) {
+            if (notificar) mostrarToast('✅ Cambios sincronizados en vivo');
+        } else {
+            conectarMQTT(() => {
+                publicarEnNube(cfg);
+                if (notificar) mostrarToast('✅ Cambios sincronizados en vivo');
+            });
+        }
+    }
+
+    function dispararSocialAhora(network) {
+        const payload = JSON.stringify({ action: 'social_now', network: network, ts: Date.now() });
+        if (mqttClient && mqttClient.connected) {
+            mqttClient.publish(`${CANAL_BASE}/cmd`, payload, { qos: 1 });
+            mostrarToast(network === 'ig' ? '📸 Instagram enviado al Live' : '▶️ YouTube enviado al Live');
+        } else {
+            conectarMQTT(() => {
+                mqttClient.publish(`${CANAL_BASE}/cmd`, payload, { qos: 1 });
+                mostrarToast(network === 'ig' ? '📸 Instagram enviado al Live' : '▶️ YouTube enviado al Live');
+            });
+        }
+    }
+
+    function alternarVisibilidad() {
+        marcadorVisible = !marcadorVisible;
+        const btn = document.getElementById('btnVisibilidad');
+        if (marcadorVisible) {
+            btn.classList.remove('hidden-state');
+            btn.textContent = '👁️ Marcador Visible en Vivo';
+        } else {
+            btn.classList.add('hidden-state');
+            btn.textContent = '🙈 Marcador Oculto en Vivo';
+        }
+        guardarYTransmitir(true);
+    }
+
+    function intercambiarEquipos() {
+        const n1 = document.getElementById('name1').value;
+        const bg1 = document.getElementById('bg1Color').value;
+        const tx1 = document.getElementById('text1Color').value;
+        const img1 = estadoImagenes.logo1;
+
+        document.getElementById('name1').value = document.getElementById('name2').value;
+        document.getElementById('bg1Color').value = document.getElementById('bg2Color').value;
+        document.getElementById('text1Color').value = document.getElementById('text2Color').value;
+        estadoImagenes.logo1 = estadoImagenes.logo2;
+
+        document.getElementById('name2').value = n1;
+        document.getElementById('bg2Color').value = bg1;
+        document.getElementById('text2Color').value = tx1;
+        estadoImagenes.logo2 = img1;
+
+        renderizarPreview(leerConfiguracionUI());
+        guardarYTransmitir(true);
+        mostrarToast('⇄ Local y Visita intercambiados');
+    }
+
+    function cargarImagen(event, clave) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const maxDim = (clave === 'logoLiga' || clave === 'logoTop') ? 280 : 160;
+                let w = img.width;
+                let h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+                    else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                estadoImagenes[clave] = canvas.toDataURL('image/png');
+                actualizarTodo();
+                mostrarToast('🖼️ Imagen aplicada en vivo');
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function limpiarImagen(clave) {
+        estadoImagenes[clave] = '';
+        actualizarTodo();
+    }
+
+    function copiarUrlLive() {
+        const urlActual = window.location.href;
+        const urlLive = urlActual.includes('index.html')
+            ? urlActual.replace('index.html', 'live.html')
+            : urlActual.replace(/\/?$/, '/live.html');
+        navigator.clipboard.writeText(urlLive).then(() => {
+            mostrarToast('📋 URL de live.html copiada al portapapeles');
+        });
+    }
+
+    function restaurarDesdeStorage() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('tf_scoreboard_studio_v6');
+            if (!raw) return;
+            const cfg = JSON.parse(raw);
+            marcadorVisible = cfg.visible !== false;
+            const btn = document.getElementById('btnVisibilidad');
+            if (!marcadorVisible) {
+                btn.classList.add('hidden-state');
+                btn.textContent = '🙈 Marcador Oculto en Vivo';
+            }
+            const campos = [
+                'boardScale', 'boardBottom', 'fontFamily', 'accentColor', 'foulActiveColor', 'foulBonusColor',
+                'ligaSize', 'teamLogoSize', 'teamFontSize', 'scoreBoxSize', 'clockFontSize',
+                'topBadgeMode', 'topImgSize', 'topImgOffset', 'topTextValue', 'topTextColor', 'topTextSize',
+                'name1', 'bg1Color', 'text1Color', 'name2', 'bg2Color', 'text2Color',
+                'scoreBgColor', 'scoreTextColor', 'shotBgColor', 'shotTextColor',
+                'clockBgColor', 'clockTextColor', 'periodTextColor',
+                'socialPosition', 'socialScale', 'socialIntervalSec'
+            ];
+            campos.forEach(id => {
+                if (cfg[id] !== undefined && document.getElementById(id)) {
+                    document.getElementById(id).value = cfg[id];
+                }
+            });
+            document.getElementById('topBadgeEnabled').checked = !!cfg.topBadgeEnabled;
+            document.getElementById('showShotClock').checked = cfg.showShotClock !== false;
+            document.getElementById('socialAutoEnabled').checked = cfg.socialAutoEnabled !== false;
+            estadoImagenes.logoLiga = cfg.logoLiga || '';
+            estadoImagenes.logo1 = cfg.logo1 || '';
+            estadoImagenes.logo2 = cfg.logo2 || '';
+            estadoImagenes.logoTop = cfg.logoTop || '';
+        } catch (e) {}
+    }
+
+    function conectarMQTT(onReady) {
+        if (typeof mqtt === 'undefined') return;
+        if (mqttClient) { try { mqttClient.end(true); } catch (e) {} }
+        const studioId = 'tf_studio_' + Math.random().toString(16).slice(2, 8);
+        mqttClient = mqtt.connect(BROKER_URL, { clientId: studioId, reconnectPeriod: 1500 });
+        mqttClient.on('connect', () => {
+            const dot = document.getElementById('signalDot');
+            const txt = document.getElementById('signalText');
+            if (dot && txt) {
+                dot.classList.remove('checking');
+                dot.classList.add('online');
+                txt.textContent = 'Estudio conectado en vivo';
+            }
+            publicarEnNube(leerConfiguracionUI());
+            if (typeof onReady === 'function') onReady();
+        });
+    }
+
+    function verificarPuente() {
+        const dot = document.getElementById('signalDot');
+        const txt = document.getElementById('signalText');
+        dot.classList.remove('online');
+        dot.classList.add('checking');
+        txt.textContent = 'Reconectando Estudio...';
+        conectarMQTT();
+    }
+
+    restaurarDesdeStorage();
+    renderizarPreview(leerConfiguracionUI());
+    conectarMQTT();
+</script>
+</body>
+</html>
