@@ -224,12 +224,12 @@
             const clockFontSize = cfg.clockFontSize || 32;
             const periodFontSize = Math.round(clockFontSize * 0.74);
 
-            const ligaHTML = cfg.logoLiga ? `<img src="${cfg.logoLiga}" alt="Liga" onerror="this.style.display='none'">` : '';
+            const ligaHTML = cfg.logoLiga ? `<img src="${cfg.logoLiga}" alt="Liga">` : '';
 
             let topBadgeHTML = '';
             if (cfg.topBadgeEnabled) {
                 if (cfg.topBadgeMode === 'image' && cfg.logoTop) {
-                    topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt="" onerror="this.style.display='none'"></div>`;
+                    topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt=""></div>`;
                 } else if (cfg.topBadgeMode === 'text' && (cfg.topTextValue || '').trim() !== '') {
                     topBadgeHTML = `<div class="lm-top-overlay-text" style="top: -${cfg.topTextOffset}px; font-size: ${cfg.topTextSize}px; color: ${cfg.topTextColor};">${cfg.topTextValue}</div>`;
                 }
@@ -241,6 +241,9 @@
                 faltasBase += `<span class="foul-bar" data-idx="${i}"></span>`;
             }
 
+            const img1HTML = cfg.logo1 ? `<img class="lm-team-logo" src="${cfg.logo1}" alt="">` : '';
+            const img2HTML = cfg.logo2 ? `<img class="lm-team-logo" src="${cfg.logo2}" alt="">` : '';
+
             document.getElementById('marcadorMount').innerHTML = `
                 <style>
                     .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.88)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7)); }
@@ -251,7 +254,6 @@
                     .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 2px, transparent 2px, transparent 6px); pointer-events: none; }
                     .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; border-left: none; border-radius: 0; }
                     .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.8)); }
-                    .lm-team-logo[src=""] { display: none; }
                     .lm-team-meta { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-width: 0; }
                     .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 3px rgba(0,0,0,0.85), 0 -1px 0 rgba(255,255,255,0.2); }
                     .lm-fouls { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; width: 100%; }
@@ -273,7 +275,7 @@
                     <div class="lm-league-box">${ligaHTML}</div>
                     <div class="lm-track">
                         <div class="lm-team-wing" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
-                            <img class="lm-team-logo" src="${cfg.logo1 || ''}" alt="" onerror="this.style.display='none'">
+                            ${img1HTML}
                             <div class="lm-team-meta">
                                 <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
                                 <div class="lm-fouls" id="fouls1">${faltasBase}</div>
@@ -287,7 +289,7 @@
                             ${shotClockHTML}
                         </div>
                         <div class="lm-team-wing away" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
-                            <img class="lm-team-logo" src="${cfg.logo2 || ''}" alt="" onerror="this.style.display='none'">
+                            ${img2HTML}
                             <div class="lm-team-meta">
                                 <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
                                 <div class="lm-fouls" id="fouls2">${faltasBase}</div>
