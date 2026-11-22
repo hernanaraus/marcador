@@ -166,7 +166,7 @@
         .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         label { font-size: 12px; color: var(--text-muted); font-weight: 600; display: flex; justify-content: space-between; }
         label span.val { color: var(--text-main); font-variant-numeric: tabular-nums; }
-        input[type="text"], select, textarea {
+        input[type="text"], select {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             color: #fff;
@@ -176,7 +176,6 @@
             width: 100%;
             font-family: inherit;
         }
-        textarea { resize: vertical; min-height: 74px; line-height: 1.35; }
         input[type="color"] {
             width: 100%;
             height: 36px;
@@ -247,7 +246,7 @@
 </header>
 
 <section class="preview-stage">
-    <div class="preview-label">Vista Previa del Marcador</div>
+    <div class="preview-label">Vista Previa del Marcador (Sin Sombras)</div>
     <div class="preview-wrapper" id="previewWrapper">
         <div id="previewMount"></div>
     </div>
@@ -318,73 +317,32 @@
         </div>
     </div>
 
-    <!-- TERCIO INFERIOR (LOWER THIRD) Y CARRUSEL -->
+    <!-- RELOJ DE POSESIÓN 24S (CONFIGURACIÓN PRE-PARTIDO) -->
     <div class="card">
-        <h2>Tercio Inferior (Premiación / Créditos)</h2>
+        <h2>Reloj de Lanzamiento (24s / 14s)</h2>
         <label class="check-row">
-            <input type="checkbox" id="ltShowLigaLogo" checked onchange="actualizarTodo()">
-            Incluir Logo de la Competencia a la izquierda
+            <input type="checkbox" id="showShotClock" checked onchange="alternarRelojPosesionEnVivo()">
+            Activar Reloj de Lanzamiento en el Marcador
         </label>
-        <div class="field">
-            <label>Título Principal (Ej: HERNÁN ARAUS / PREMIACIÓN)</label>
-            <input type="text" id="ltTitle" value="HERNÁN ARAUS" oninput="actualizarTodo()">
-        </div>
         <div class="field-row">
             <div class="field">
-                <label>Modo Subtítulo</label>
-                <select id="ltMode" onchange="actualizarTodo()">
-                    <option value="simple">Texto Simple</option>
-                    <option value="carousel">Carrusel de Textos</option>
-                </select>
+                <label>Fondo Posesión</label>
+                <input type="color" id="shotBgColor" value="#141519" oninput="actualizarTodo()">
             </div>
             <div class="field">
-                <label>Rotación Carrusel <span class="val" id="val_ltCarouselSec">5s</span></label>
-                <input type="range" id="ltCarouselSec" min="3" max="15" value="5" oninput="actualizarTodo()">
-            </div>
-        </div>
-        <div class="field">
-            <label>Subtítulo (Modo Texto Simple)</label>
-            <input type="text" id="ltSubtitle" value="PRODUCTOR GENERAL — TIEMPO FUERA" oninput="actualizarTodo()">
-        </div>
-        <div class="field">
-            <label>Textos del Carrusel (1 línea por mensaje)</label>
-            <textarea id="ltCarouselLines" oninput="actualizarTodo()">TRANSMISIÓN EN VIVO
-@TIEMPOFUERA_CL
-BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
-        </div>
-        <div class="field-row">
-            <div class="field">
-                <label>Tamaño Título <span class="val" id="val_ltTitleSize">34px</span></label>
-                <input type="range" id="ltTitleSize" min="22" max="52" value="34" oninput="actualizarTodo()">
-            </div>
-            <div class="field">
-                <label>Tamaño Subtítulo <span class="val" id="val_ltSubtitleSize">20px</span></label>
-                <input type="range" id="ltSubtitleSize" min="14" max="34" value="20" oninput="actualizarTodo()">
+                <label>Números Posesión</label>
+                <input type="color" id="shotTextColor" value="#ff2a2a" oninput="actualizarTodo()">
             </div>
         </div>
         <div class="field-row">
             <div class="field">
-                <label>Color Título</label>
-                <input type="color" id="ltTitleColor" value="#ffffff" oninput="actualizarTodo()">
+                <label>Color Texto Sup.</label>
+                <input type="color" id="topTextColor" value="#ffffff" oninput="actualizarTodo()">
             </div>
             <div class="field">
-                <label>Color Subtítulo</label>
-                <input type="color" id="ltSubtitleColor" value="#e3b857" oninput="actualizarTodo()">
+                <label>Tamaño Texto Sup. <span class="val" id="val_topTextSize">15px</span></label>
+                <input type="range" id="topTextSize" min="11" max="24" value="15" oninput="actualizarTodo()">
             </div>
-        </div>
-        <div class="field-row">
-            <div class="field">
-                <label>Fondo Tercio Inf.</label>
-                <input type="color" id="ltBgColor" value="#12151c" oninput="actualizarTodo()">
-            </div>
-            <div class="field">
-                <label>Borde Tercio Inf.</label>
-                <input type="color" id="ltAccentColor" value="#e3b857" oninput="actualizarTodo()">
-            </div>
-        </div>
-        <div class="btn-group">
-            <button class="btn-toggle-vis hidden-state" id="btnLtVis" onclick="alternarTercioInferior()">📺 Mostrar Tercio Inferior</button>
-            <button class="btn-blue" onclick="lanzarTercioTemporal(12)">⏱️ Lanzar 12s</button>
         </div>
     </div>
 
@@ -556,35 +514,6 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
             </div>
         </div>
     </div>
-
-    <!-- RELOJ DE POSESIÓN 24S -->
-    <div class="card">
-        <h2>Reloj de Posesión (24s / 14s)</h2>
-        <label class="check-row">
-            <input type="checkbox" id="showShotClock" checked onchange="alternarRelojPosesionEnVivo()">
-            Mostrar Reloj de Posesión en Vivo (24s)
-        </label>
-        <div class="field-row">
-            <div class="field">
-                <label>Fondo Posesión</label>
-                <input type="color" id="shotBgColor" value="#141519" oninput="actualizarTodo()">
-            </div>
-            <div class="field">
-                <label>Números Posesión</label>
-                <input type="color" id="shotTextColor" value="#ff2a2a" oninput="actualizarTodo()">
-            </div>
-        </div>
-        <div class="field-row">
-            <div class="field">
-                <label>Color Texto Sup.</label>
-                <input type="color" id="topTextColor" value="#ffffff" oninput="actualizarTodo()">
-            </div>
-            <div class="field">
-                <label>Tamaño Texto Sup. <span class="val" id="val_topTextSize">15px</span></label>
-                <input type="range" id="topTextSize" min="11" max="24" value="15" oninput="actualizarTodo()">
-            </div>
-        </div>
-    </div>
 </main>
 
 <div class="toast" id="toastMsg">Configuración enviada a PRISM / OBS</div>
@@ -592,41 +521,17 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
 <script>
     const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
     const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
-    const STORAGE_KEY = 'tf_scoreboard_studio_v4';
+    const STORAGE_KEY = 'tf_scoreboard_studio_v5';
 
     let mqttClient = null;
     let estadoImagenes = { logoLiga: '', logo1: '', logo2: '', logoTop: '' };
     let marcadorVisible = true;
-    let ltVisible = false;
-    let ltTimeout = null;
 
     function mostrarToast(texto) {
         const t = document.getElementById('toastMsg');
         t.textContent = texto;
         t.classList.add('show');
         setTimeout(() => t.classList.remove('show'), 2600);
-    }
-
-    function aclararHex(hex, porcentaje) {
-        hex = (hex || '#1c1e24').replace('#', '');
-        let r = parseInt(hex.substring(0, 2), 16);
-        let g = parseInt(hex.substring(2, 4), 16);
-        let b = parseInt(hex.substring(4, 6), 16);
-        r = Math.min(255, Math.floor(r + (255 - r) * porcentaje));
-        g = Math.min(255, Math.floor(g + (255 - g) * porcentaje));
-        b = Math.min(255, Math.floor(b + (255 - b) * porcentaje));
-        return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-    }
-
-    function oscurecerHex(hex, porcentaje) {
-        hex = (hex || '#1c1e24').replace('#', '');
-        let r = parseInt(hex.substring(0, 2), 16);
-        let g = parseInt(hex.substring(2, 4), 16);
-        let b = parseInt(hex.substring(4, 6), 16);
-        r = Math.max(0, Math.floor(r * (1 - porcentaje)));
-        g = Math.max(0, Math.floor(g * (1 - porcentaje)));
-        b = Math.max(0, Math.floor(b * (1 - porcentaje)));
-        return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
     }
 
     function leerConfiguracionUI() {
@@ -645,9 +550,6 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
         document.getElementById('val_topImgOffset').textContent = getNum('topImgOffset') + 'px';
         document.getElementById('val_topTextSize').textContent = getNum('topTextSize') + 'px';
         document.getElementById('val_socialIntervalSec').textContent = getNum('socialIntervalSec') + 's';
-        document.getElementById('val_ltCarouselSec').textContent = getNum('ltCarouselSec') + 's';
-        document.getElementById('val_ltTitleSize').textContent = getNum('ltTitleSize') + 'px';
-        document.getElementById('val_ltSubtitleSize').textContent = getNum('ltSubtitleSize') + 'px';
 
         return {
             visible: marcadorVisible,
@@ -690,20 +592,7 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
             logoTop: estadoImagenes.logoTop,
             socialAutoEnabled: getChk('socialAutoEnabled'),
             socialPosition: getVal('socialPosition'),
-            socialIntervalSec: getNum('socialIntervalSec'),
-            ltVisible: ltVisible,
-            ltShowLigaLogo: getChk('ltShowLigaLogo'),
-            ltMode: getVal('ltMode'),
-            ltTitle: getVal('ltTitle'),
-            ltSubtitle: getVal('ltSubtitle'),
-            ltCarouselLines: getVal('ltCarouselLines'),
-            ltCarouselSec: getNum('ltCarouselSec'),
-            ltBgColor: getVal('ltBgColor'),
-            ltAccentColor: getVal('ltAccentColor'),
-            ltTitleColor: getVal('ltTitleColor'),
-            ltTitleSize: getNum('ltTitleSize'),
-            ltSubtitleColor: getVal('ltSubtitleColor'),
-            ltSubtitleSize: getNum('ltSubtitleSize')
+            socialIntervalSec: getNum('socialIntervalSec')
         };
     }
 
@@ -719,11 +608,6 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
         const wrapper = document.getElementById('previewWrapper');
         wrapper.style.transform = `scale(${cfg.boardScale})`;
         wrapper.classList.toggle('is-hidden', !cfg.visible);
-
-        const bg1Light = aclararHex(cfg.bg1Color, 0.22);
-        const bg1Dark = oscurecerHex(cfg.bg1Color, 0.14);
-        const bg2Light = aclararHex(cfg.bg2Color, 0.22);
-        const bg2Dark = oscurecerHex(cfg.bg2Color, 0.14);
 
         const wingWidth = calcularAnchoAla(cfg);
         const ligaBoxHeight = Math.max(92, cfg.ligaSize || 92);
@@ -752,8 +636,8 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
         let faltasDemo = '';
         for (let i = 1; i <= 5; i++) {
             const activo = i <= 2;
-            const col = activo ? cfg.foulActiveColor : 'rgba(0,0,0,0.42)';
-            const brd = activo ? '1px solid #111' : '1px solid rgba(255,255,255,0.38)';
+            const col = activo ? cfg.foulActiveColor : 'rgba(0,0,0,0.35)';
+            const brd = activo ? '1px solid #111' : '1px solid rgba(255,255,255,0.45)';
             faltasDemo += `<span class="foul-bar" style="background:${col}; border:${brd};"></span>`;
         }
 
@@ -762,34 +646,33 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
 
         document.getElementById('previewMount').innerHTML = `
             <style>
-                .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; }
-                .lm-league-box { height: ${ligaBoxHeight}px; min-width: 86px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px; }
+                .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; background: transparent; }
+                .lm-league-box { height: ${ligaBoxHeight}px; min-width: 86px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px; background: transparent; }
                 .lm-league-box img { height: ${cfg.ligaSize}px; width: auto; max-width: ${Math.round(cfg.ligaSize * 1.35)}px; object-fit: contain; }
-                .lm-track { display: inline-flex; align-items: center; position: relative; }
-                .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; overflow: hidden; }
-                .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 6px); pointer-events: none; }
-                .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; border-left: none; border-radius: 0; }
+                .lm-track { display: inline-flex; align-items: center; position: relative; background: transparent; }
+                .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; background: ${cfg.bg1Color}; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; overflow: hidden; }
+                .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; background: ${cfg.bg2Color}; border-left: none; border-radius: 0; }
                 .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; }
                 .lm-team-meta { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-width: 0; }
                 .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                 .lm-fouls { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; width: 100%; }
                 .lm-team-wing.away .lm-fouls { flex-direction: row-reverse; justify-content: center; }
                 .foul-bar { width: 19px; height: 5px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
-                .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.14)} 0%, ${cfg.scoreBgColor} 55%, ${oscurecerHex(cfg.scoreBgColor, 0.18)} 100%); padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; z-index: 3; }
+                .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: ${cfg.scoreBgColor}; padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; z-index: 3; }
                 .lm-top-overlay-img { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; }
                 .lm-top-overlay-img img { width: auto; max-width: 210px; object-fit: contain; }
-                .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.15)}, ${cfg.scoreBgColor}); border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; z-index: 5; }
+                .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: ${cfg.scoreBgColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; z-index: 5; }
                 .lm-pts { font-size: ${ptsFontSize}px; font-weight: 800; color: ${cfg.scoreTextColor}; min-width: ${ptsMinWidth}px; text-align: center; font-variant-numeric: tabular-nums; line-height: 0.92; letter-spacing: -0.5px; }
                 .lm-score-dash { font-size: ${dashSize}px; font-weight: 800; color: ${cfg.accentColor}; line-height: 1; opacity: 0.85; padding: 0 1px; }
-                .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, ${aclararHex(cfg.shotBgColor, 0.15)}, ${cfg.shotBgColor}); color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; z-index: 4; }
-                .lm-clock-box { display: flex; align-items: center; height: 60px; background: linear-gradient(180deg, ${aclararHex(cfg.clockBgColor, 0.15)} 0%, ${cfg.clockBgColor} 55%, ${oscurecerHex(cfg.clockBgColor, 0.16)} 100%); padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; }
+                .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: ${cfg.shotBgColor}; color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; z-index: 4; }
+                .lm-clock-box { display: flex; align-items: center; height: 60px; background: ${cfg.clockBgColor}; padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; }
                 .lm-timer { font-size: ${clockFontSize}px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: ${Math.round(clockFontSize * 2.25)}px; text-align: center; line-height: 1; }
-                .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: rgba(255,255,255,0.08); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); line-height: 1; }
+                .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: rgba(255,255,255,0.08); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.22); line-height: 1; }
             </style>
             <div class="lm-bar">
                 <div class="lm-league-box">${ligaHTML}</div>
                 <div class="lm-track">
-                    <div class="lm-team-wing" style="background: linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
+                    <div class="lm-team-wing">
                         ${img1HTML}
                         <div class="lm-team-meta">
                             <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
@@ -803,7 +686,7 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
                         <div class="lm-pts">58</div>
                         ${shotClockHTML}
                     </div>
-                    <div class="lm-team-wing away" style="background: linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
+                    <div class="lm-team-wing away">
                         ${img2HTML}
                         <div class="lm-team-meta">
                             <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
@@ -861,43 +744,10 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
         }
     }
 
-    function actualizarBotonLt() {
-        const btn = document.getElementById('btnLtVis');
-        if (!btn) return;
-        if (ltVisible) {
-            btn.classList.remove('hidden-state');
-            btn.textContent = '📺 Ocultar Tercio Inferior';
-        } else {
-            btn.classList.add('hidden-state');
-            btn.textContent = '📺 Mostrar Tercio Inferior';
-        }
-    }
-
-    function alternarTercioInferior() {
-        if (ltTimeout) { clearTimeout(ltTimeout); ltTimeout = null; }
-        ltVisible = !ltVisible;
-        actualizarBotonLt();
-        guardarYTransmitir();
-        mostrarToast(ltVisible ? '📺 Tercio Inferior al aire' : '🙈 Tercio Inferior oculto');
-    }
-
-    function lanzarTercioTemporal(segundos) {
-        if (ltTimeout) clearTimeout(ltTimeout);
-        ltVisible = true;
-        actualizarBotonLt();
-        guardarYTransmitir();
-        mostrarToast(`⏱️ Tercio Inferior visible por ${segundos}s`);
-        ltTimeout = setTimeout(() => {
-            ltVisible = false;
-            actualizarBotonLt();
-            guardarYTransmitir();
-        }, segundos * 1000);
-    }
-
     function alternarRelojPosesionEnVivo() {
         const activo = document.getElementById('showShotClock').checked;
         guardarYTransmitir();
-        mostrarToast(activo ? '⏱️ Reloj 24s activado en el live' : '🚫 Reloj 24s oculto en el live');
+        mostrarToast(activo ? '⏱️ Reloj 24s activado' : '🚫 Reloj 24s desactivado');
     }
 
     function alternarVisibilidad() {
@@ -982,8 +832,6 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
             if (!raw) return;
             const cfg = JSON.parse(raw);
             marcadorVisible = cfg.visible !== false;
-            ltVisible = !!cfg.ltVisible;
-            actualizarBotonLt();
             const btn = document.getElementById('btnVisibilidad');
             if (!marcadorVisible) {
                 btn.classList.add('hidden-state');
@@ -996,9 +844,7 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
                 'name1', 'bg1Color', 'text1Color', 'name2', 'bg2Color', 'text2Color',
                 'scoreBgColor', 'scoreTextColor', 'shotBgColor', 'shotTextColor',
                 'clockBgColor', 'clockTextColor', 'periodTextColor',
-                'socialPosition', 'socialIntervalSec',
-                'ltMode', 'ltTitle', 'ltSubtitle', 'ltCarouselLines', 'ltCarouselSec',
-                'ltBgColor', 'ltAccentColor', 'ltTitleColor', 'ltTitleSize', 'ltSubtitleColor', 'ltSubtitleSize'
+                'socialPosition', 'socialIntervalSec'
             ];
             campos.forEach(id => {
                 if (cfg[id] !== undefined && document.getElementById(id)) {
@@ -1008,7 +854,6 @@ BÁSQUETBOL FORMATIVO Y ADULTO</textarea>
             document.getElementById('topBadgeEnabled').checked = !!cfg.topBadgeEnabled;
             document.getElementById('showShotClock').checked = cfg.showShotClock !== false;
             document.getElementById('socialAutoEnabled').checked = cfg.socialAutoEnabled !== false;
-            document.getElementById('ltShowLigaLogo').checked = cfg.ltShowLigaLogo !== false;
             estadoImagenes.logoLiga = cfg.logoLiga || '';
             estadoImagenes.logo1 = cfg.logo1 || '';
             estadoImagenes.logo2 = cfg.logo2 || '';
