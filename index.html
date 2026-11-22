@@ -2,923 +2,861 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estudio Scoreboard — Tiempo Fuera</title>
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Bebas+Neue&family=Chakra+Petch:wght@600;700&family=Oswald:wght@600;700&family=Rajdhani:wght@600;700&family=Russo+One&family=Teko:wght@600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
         :root {
-            --bg-panel: #111215;
-            --bg-card: #191b20;
-            --gold: #e3b857;
-            --border: #2c303a;
-            --text: #f2f2f2;
+            --bg-app: #0f1115;
+            --bg-panel: #171a21;
+            --bg-card: #1f232d;
+            --border-subtle: #2e3442;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent-gold: #e3b857;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
         }
-        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background: var(--bg-panel);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-        }
-        .header {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg-app);
+            color: var(--text-main);
+            min-height: 100vh;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+        }
+        header {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 14px 24px;
+            display: flex;
             align-items: center;
+            justify-content: space-between;
             flex-wrap: wrap;
             gap: 12px;
-            border-bottom: 2px solid var(--gold);
-            padding-bottom: 12px;
-            margin-bottom: 20px;
         }
-        .header h1 {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-style: italic;
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand h1 { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; color: #fff; }
+        .brand span {
+            font-size: 11px;
+            background: rgba(227, 184, 87, 0.15);
+            color: var(--accent-gold);
+            border: 1px solid rgba(227, 184, 87, 0.4);
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 0;
-            color: var(--gold);
-            font-size: 28px;
         }
         .status-pill {
-            display: inline-flex;
+            display: flex;
             align-items: center;
             gap: 8px;
-            background: #1b1e24;
-            border: 1px solid #3c414d;
-            padding: 7px 14px;
-            border-radius: 20px;
-            font-size: 13px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 12px;
             font-weight: 600;
-            cursor: pointer;
-            user-select: none;
         }
-        .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #ff5252;
-            box-shadow: 0 0 8px #ff5252;
-            flex-shrink: 0;
-        }
-        .dot.online { background: #00e676; box-shadow: 0 0 8px #00e676; }
-        .dot.checking { background: #ffd740; box-shadow: 0 0 8px #ffd740; }
+        .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-red); }
+        .dot.checking { background: #f59e0b; animation: pulse 1.2s infinite; }
+        .dot.online { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
         .preview-stage {
-            background-image: 
-                linear-gradient(45deg, #1e2025 25%, transparent 25%), 
-                linear-gradient(-45deg, #1e2025 25%, transparent 25%), 
-                linear-gradient(45deg, transparent 75%, #1e2025 75%), 
-                linear-gradient(-45deg, transparent 75%, #1e2025 75%);
+            background-color: #14171f;
+            background-image:
+                linear-gradient(45deg, #1b1f29 25%, transparent 25%),
+                linear-gradient(-45deg, #1b1f29 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #1b1f29 75%),
+                linear-gradient(-45deg, transparent 75%, #1b1f29 75%);
             background-size: 24px 24px;
             background-position: 0 0, 0 12px, 12px -12px, -12px 0;
-            background-color: #15171b;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 46px 20px 44px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 36px 20px 44px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-bottom: 22px;
+            position: relative;
             overflow-x: auto;
-            min-height: 245px;
         }
-        .preview-badge {
+        .preview-label {
+            position: absolute;
+            top: 10px;
+            left: 16px;
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #999;
-            margin-bottom: 24px;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            background: rgba(15, 17, 21, 0.85);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
         }
-        .grid-3 {
+        .preview-wrapper {
+            transform-origin: center center;
+            transition: transform 0.2s ease, opacity 0.25s ease;
+        }
+        .preview-wrapper.is-hidden { opacity: 0.35; filter: grayscale(0.6); }
+
+        .toolbar {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .btn-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 15px;
+            font-size: 13px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            transition: all 0.15s ease;
+        }
+        button:active { transform: scale(0.98); }
+        .btn-primary { background: var(--accent-gold); color: #111; }
+        .btn-primary:hover { background: #f0c768; }
+        .btn-toggle-vis { background: var(--accent-green); color: #062118; }
+        .btn-toggle-vis.hidden-state { background: var(--accent-red); color: #fff; }
+        .btn-secondary { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-subtle); }
+        .btn-secondary:hover { border-color: #4b5563; }
+
+        .grid-controls {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px 24px 48px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(305px, 1fr));
-            gap: 16px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 18px;
         }
         .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 16px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
-        .card h3 {
-            margin: 0 0 12px 0;
-            font-size: 15px;
-            color: var(--gold);
+        .card h2 {
+            font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            border-bottom: 1px solid #2a2d35;
-            padding-bottom: 6px;
+            color: var(--accent-gold);
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 8px;
         }
-        .row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .row label { font-size: 13px; color: #ccc; flex: 1; }
+        .field { display: flex; flex-direction: column; gap: 5px; }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        label { font-size: 12px; color: var(--text-muted); font-weight: 600; display: flex; justify-content: space-between; }
+        label span.val { color: var(--text-main); font-variant-numeric: tabular-nums; }
         input[type="text"], select {
-            background: #252830;
-            border: 1px solid #3c414d;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
             color: #fff;
-            padding: 7px 10px;
-            border-radius: 6px;
+            padding: 8px 10px;
+            border-radius: 7px;
             font-size: 13px;
-            width: 56%;
+            width: 100%;
         }
         input[type="color"] {
-            width: 44px;
-            height: 32px;
-            border: 1px solid #555;
-            border-radius: 6px;
-            background: none;
-            cursor: pointer;
-            padding: 0;
-        }
-        input[type="file"] {
-            font-size: 12px;
-            color: #fff;
-            background: #252830;
-            border: 1px dashed var(--gold);
-            padding: 6px;
-            border-radius: 6px;
-            width: 56%;
-            cursor: pointer;
-        }
-        .logo-box-group {
-            background: #14161a;
-            border: 1px solid #282c36;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        .logo-box-group .row:last-child { margin-bottom: 0; }
-        .range-wrap { display: flex; align-items: center; gap: 8px; width: 56%; }
-        .range-wrap input[type="range"] { flex: 1; accent-color: var(--gold); cursor: pointer; }
-        .range-val { font-size: 12px; color: var(--gold); font-weight: 700; min-width: 42px; text-align: right; }
-        .actions-bar {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
+            width: 100%;
+            height: 36px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 7px;
             background: var(--bg-card);
-            padding: 16px;
-            border-radius: 10px;
-            border: 1px solid var(--gold);
-            align-items: center;
-            justify-content: space-between;
+            cursor: pointer;
+            padding: 2px;
         }
-        button {
-            padding: 11px 20px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 14px;
+        input[type="range"] { width: 100%; accent-color: var(--accent-gold); cursor: pointer; }
+        .file-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-card);
+            border: 1px dashed var(--border-subtle);
+            padding: 8px 10px;
+            border-radius: 8px;
+        }
+        .file-box input[type="file"] { font-size: 11px; color: var(--text-muted); width: 100%; }
+        .btn-clear {
+            padding: 5px 9px;
+            font-size: 11px;
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
             cursor: pointer;
         }
-        .btn-gold { background: linear-gradient(135deg, #e3b857, #c59636); color: #111; }
-        .btn-dark { background: #2d313b; color: #fff; border: 1px solid #444; }
-        .btn-vis-on { background: linear-gradient(135deg, #1b5e20, #2e7d32); color: #ffffff; border: 1px solid #4caf50; }
-        .btn-vis-off { background: linear-gradient(135deg, #7f0000, #b71c1c); color: #ffffff; border: 1px solid #ef5350; }
+        .check-row input { width: 16px; height: 16px; accent-color: var(--accent-gold); }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #10b981;
+            color: #052e16;
+            font-weight: 800;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            opacity: 0;
+            transform: translateY(15px);
+            pointer-events: none;
+            transition: all 0.25s ease;
+            z-index: 999;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Estudio Scoreboard — Tiempo Fuera</h1>
-        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <button id="btnToggleVisTop" class="btn-vis-on" style="padding: 7px 14px; font-size: 13px;" onclick="alternarVisibilidadOBS()">👁 Marcador Visible en OBS</button>
-            <div class="status-pill" id="bridgePill" onclick="verificarPuente()">
-                <span class="dot" id="signalDot"></span>
-                <span id="signalText">Esperando Puente PC...</span>
-            </div>
-            <a href="./live.html" target="_blank" style="color: var(--gold); font-size: 13px; font-weight: 700;">Abrir Vista OBS ↗</a>
-        </div>
+<header>
+    <div class="brand">
+        <h1>ESTUDIO SCOREBOARD</h1>
+        <span>Tiempo Fuera</span>
     </div>
+    <div class="status-pill">
+        <div class="dot checking" id="signalDot"></div>
+        <span id="signalText">Conectando al canal en vivo...</span>
+    </div>
+</header>
 
-    <div class="preview-stage">
-        <div class="preview-badge">Vista Previa En Vivo (Transmisión Directa a OBS)</div>
+<section class="preview-stage">
+    <div class="preview-label">Vista Previa en Tiempo Real</div>
+    <div class="preview-wrapper" id="previewWrapper">
         <div id="previewMount"></div>
     </div>
+</section>
 
-    <div class="grid-3">
-        <div class="card">
-            <h3>1. Liga y Tipografía</h3>
-            <div class="logo-box-group">
-                <div class="row">
-                    <label>Subir Logo Liga (PC)</label>
-                    <input type="file" id="logoLigaIn" accept="image/*">
-                </div>
-                <div class="row">
-                    <label>Estado Logo Liga</label>
-                    <input type="text" id="logoLigaPath" placeholder="Sin logo" readonly>
-                </div>
-            </div>
-            <div class="row">
-                <label>Tipografía del Marcador</label>
-                <select id="fontFamily" onchange="actualizarTodo()">
-                    <option value="'Barlow Condensed', sans-serif" selected>Barlow Condensed (Broadcast Pro)</option>
-                    <option value="'Arial Narrow', sans-serif">Arial Narrow (Clásica)</option>
-                    <option value="'Impact', sans-serif">Impact (Broadcast Pesada)</option>
-                    <option value="'Segoe UI', sans-serif">Segoe UI (Moderna Limpia)</option>
-                </select>
-            </div>
-            <div class="row">
-                <label>Borde Dorado / Acento</label>
-                <input type="color" id="accentColor" value="#e3b857" oninput="actualizarTodo()">
-            </div>
-            <div class="row">
-                <label>Barra Faltas (1-4)</label>
-                <input type="color" id="foulActiveColor" value="#ffe600" oninput="actualizarTodo()">
-            </div>
-            <div class="row">
-                <label>5ta Falta (Bonus / Roja)</label>
-                <input type="color" id="foulBonusColor" value="#ff1744" oninput="actualizarTodo()">
-            </div>
+<div class="toolbar">
+    <div class="btn-group">
+        <button class="btn-primary" onclick="guardarYTransmitir()">📡 Guardar y Transmitir a PRISM / OBS</button>
+        <button class="btn-toggle-vis" id="btnVisibilidad" onclick="alternarVisibilidad()">👁️ Marcador Visible en Vivo</button>
+        <button class="btn-secondary" onclick="intercambiarEquipos()">⇄ Intercambiar Local / Visita</button>
+    </div>
+    <div class="btn-group">
+        <button class="btn-secondary" onclick="verificarPuente()">🔄 Reconectar Estudio</button>
+        <button class="btn-secondary" onclick="copiarUrlLive()">📋 Copiar URL de live.html</button>
+    </div>
+</div>
+
+<main class="grid-controls">
+    <!-- EQUIPO LOCAL -->
+    <div class="card">
+        <h2>Equipo Local (Izquierda)</h2>
+        <div class="field">
+            <label>Nombre / Sigla Equipo Local</label>
+            <input type="text" id="name1" value="LOCAL" oninput="actualizarTodo()">
         </div>
-
-        <div class="card">
-            <h3>2. Equipo Local (Izquierda)</h3>
-            <div class="row">
-                <label>Nombre Equipo 1 (máx. 24)</label>
-                <input type="text" id="name1" value="DREAMZ" maxlength="24" oninput="actualizarTodo()">
-            </div>
-            <div class="logo-box-group">
-                <div class="row">
-                    <label>Subir Logo Equipo 1 (PC)</label>
-                    <input type="file" id="logo1In" accept="image/*">
-                </div>
-                <div class="row">
-                    <label>Estado Logo 1</label>
-                    <input type="text" id="logo1Path" placeholder="Sin logo" readonly>
-                </div>
-            </div>
-            <div class="row">
-                <label>Color Base (Gradiente 3D)</label>
+        <div class="field-row">
+            <div class="field">
+                <label>Color Fondo</label>
                 <input type="color" id="bg1Color" value="#1c1e24" oninput="actualizarTodo()">
             </div>
-            <div class="row">
-                <label>Color Letra Equipo 1</label>
+            <div class="field">
+                <label>Color Texto</label>
                 <input type="color" id="text1Color" value="#ffffff" oninput="actualizarTodo()">
             </div>
         </div>
+        <div class="field">
+            <label>Escudo / Logo Local (PNG Transparente)</label>
+            <div class="file-box">
+                <input type="file" accept="image/*" onchange="cargarImagen(event, 'logo1')">
+                <button class="btn-clear" onclick="limpiarImagen('logo1')">Quitar</button>
+            </div>
+        </div>
+    </div>
 
-        <div class="card">
-            <h3>3. Equipo Visita (Derecha)</h3>
-            <div class="row">
-                <label>Nombre Equipo 2 (máx. 24)</label>
-                <input type="text" id="name2" value="BRISAS" maxlength="24" oninput="actualizarTodo()">
-            </div>
-            <div class="logo-box-group">
-                <div class="row">
-                    <label>Subir Logo Equipo 2 (PC)</label>
-                    <input type="file" id="logo2In" accept="image/*">
-                </div>
-                <div class="row">
-                    <label>Estado Logo 2</label>
-                    <input type="text" id="logo2Path" placeholder="Sin logo" readonly>
-                </div>
-            </div>
-            <div class="row">
-                <label>Color Base (Gradiente 3D)</label>
+    <!-- EQUIPO VISITA -->
+    <div class="card">
+        <h2>Equipo Visita (Derecha)</h2>
+        <div class="field">
+            <label>Nombre / Sigla Equipo Visita</label>
+            <input type="text" id="name2" value="VISITA" oninput="actualizarTodo()">
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Color Fondo</label>
                 <input type="color" id="bg2Color" value="#1c1e24" oninput="actualizarTodo()">
             </div>
-            <div class="row">
-                <label>Color Letra Equipo 2</label>
+            <div class="field">
+                <label>Color Texto</label>
                 <input type="color" id="text2Color" value="#ffffff" oninput="actualizarTodo()">
             </div>
         </div>
-
-        <div class="card">
-            <h3>4. Ajustes de Tamaño y Proporción</h3>
-            <div class="row">
-                <label>Escala General (1080p / 2K)</label>
-                <div class="range-wrap">
-                    <input type="range" id="boardScale" min="70" max="160" value="100" oninput="actualizarTodo()">
-                    <span class="range-val" id="boardScaleVal">100%</span>
-                </div>
-            </div>
-            <div class="row">
-                <label>Tamaño Logo Liga</label>
-                <div class="range-wrap">
-                    <input type="range" id="ligaSize" min="60" max="150" value="92" oninput="actualizarTodo()">
-                    <span class="range-val" id="ligaSizeVal">92px</span>
-                </div>
-            </div>
-            <div class="row">
-                <label>Tamaño Logos Equipos</label>
-                <div class="range-wrap">
-                    <input type="range" id="teamLogoSize" min="26" max="54" value="44" oninput="actualizarTodo()">
-                    <span class="range-val" id="teamLogoSizeVal">44px</span>
-                </div>
-            </div>
-            <div class="row">
-                <label>Tamaño Texto Equipos</label>
-                <div class="range-wrap">
-                    <input type="range" id="teamFontSize" min="16" max="32" value="25" oninput="actualizarTodo()">
-                    <span class="range-val" id="teamFontSizeVal">25px</span>
-                </div>
-            </div>
-            <div class="row">
-                <label>Tamaño Caja y Puntos</label>
-                <div class="range-wrap">
-                    <input type="range" id="scoreBoxSize" min="36" max="64" value="48" oninput="actualizarTodo()">
-                    <span class="range-val" id="scoreBoxSizeVal">48px</span>
-                </div>
-            </div>
-            <div class="row">
-                <label>Tamaño Reloj y Cuarto</label>
-                <div class="range-wrap">
-                    <input type="range" id="clockFontSize" min="24" max="42" value="32" oninput="actualizarTodo()">
-                    <span class="range-val" id="clockFontSizeVal">32px</span>
-                </div>
+        <div class="field">
+            <label>Escudo / Logo Visita (PNG Transparente)</label>
+            <div class="file-box">
+                <input type="file" accept="image/*" onchange="cargarImagen(event, 'logo2')">
+                <button class="btn-clear" onclick="limpiarImagen('logo2')">Quitar</button>
             </div>
         </div>
+    </div>
 
-        <div class="card">
-            <h3>5. Gráfica / Texto Sobre Puntaje</h3>
-            <div class="row">
-                <label>Mostrar Elemento Superior</label>
-                <select id="topBadgeEnabled" onchange="actualizarTodo()">
-                    <option value="0" selected>Desactivado (Oculto)</option>
-                    <option value="1">Activado (Mostrar sobre puntaje)</option>
-                </select>
+    <!-- IDENTIDAD LIGA Y CINTA SUPERIOR -->
+    <div class="card">
+        <h2>Logo Liga y Etiqueta Superior</h2>
+        <div class="field">
+            <label>Logo Principal Torneo / Liga (Izquierda)</label>
+            <div class="file-box">
+                <input type="file" accept="image/*" onchange="cargarImagen(event, 'logoLiga')">
+                <button class="btn-clear" onclick="limpiarImagen('logoLiga')">Quitar</button>
             </div>
-            <div class="row">
-                <label>Tipo de Elemento</label>
+        </div>
+        <div class="field">
+            <label>Tamaño Logo Liga <span class="val" id="val_ligaSize">92px</span></label>
+            <input type="range" id="ligaSize" min="60" max="150" value="92" oninput="actualizarTodo()">
+        </div>
+        <label class="check-row">
+            <input type="checkbox" id="topBadgeEnabled" onchange="actualizarTodo()">
+            Activar Etiqueta / Logo Superior sobre Puntos
+        </label>
+        <div class="field-row">
+            <div class="field">
+                <label>Modo Superior</label>
                 <select id="topBadgeMode" onchange="actualizarTodo()">
-                    <option value="image" selected>Gráfica / Logo Suplementario</option>
-                    <option value="text">Texto Personalizado</option>
+                    <option value="text">Texto (Ej: FINAL)</option>
+                    <option value="image">Imagen / Auspiciador</option>
                 </select>
             </div>
-            <div id="topImageControls">
-                <div class="logo-box-group">
-                    <div class="row">
-                        <label>Subir Gráfica (PC)</label>
-                        <input type="file" id="logoTopIn" accept="image/*">
-                    </div>
-                    <div class="row">
-                        <label>Estado Gráfica</label>
-                        <input type="text" id="logoTopPath" placeholder="Sin gráfica" readonly>
-                    </div>
-                </div>
-                <div class="row">
-                    <label>Tamaño Gráfica</label>
-                    <div class="range-wrap">
-                        <input type="range" id="topImgSize" min="20" max="110" value="44" oninput="actualizarTodo()">
-                        <span class="range-val" id="topImgSizeVal">44px</span>
-                    </div>
-                </div>
-                <div class="row">
-                    <label>Posición Vertical (Altura)</label>
-                    <div class="range-wrap">
-                        <input type="range" id="topImgOffset" min="-15" max="45" value="18" oninput="actualizarTodo()">
-                        <span class="range-val" id="topImgOffsetVal">18px</span>
-                    </div>
-                </div>
-            </div>
-            <div id="topTextControls" style="display: none;">
-                <div class="row">
-                    <label>Texto Superior</label>
-                    <input type="text" id="topTextValue" value="GRAN FINAL" maxlength="24" oninput="actualizarTodo()">
-                </div>
-                <div class="row">
-                    <label>Color del Texto</label>
-                    <input type="color" id="topTextColor" value="#ffffff" oninput="actualizarTodo()">
-                </div>
-                <div class="row">
-                    <label>Altura / Tamaño Texto</label>
-                    <div class="range-wrap">
-                        <input type="range" id="topTextSize" min="11" max="28" value="15" oninput="actualizarTodo()">
-                        <span class="range-val" id="topTextSizeVal">15px</span>
-                    </div>
-                </div>
-                <div class="row">
-                    <label>Posición Vertical</label>
-                    <div class="range-wrap">
-                        <input type="range" id="topTextOffset" min="-10" max="35" value="14" oninput="actualizarTodo()">
-                        <span class="range-val" id="topTextOffsetVal">14px</span>
-                    </div>
-                </div>
+            <div class="field">
+                <label>Texto Superior</label>
+                <input type="text" id="topTextValue" placeholder="GRAN FINAL" oninput="actualizarTodo()">
             </div>
         </div>
-
-        <div class="card">
-            <h3>6. Colores Puntos, 24s y Cuarto</h3>
-            <div class="row">
-                <label>Reloj de 24 Segundos</label>
-                <select id="showShotClock" onchange="actualizarTodo()">
-                    <option value="1" selected>Habilitado (Mostrar abajo)</option>
-                    <option value="0">Deshabilitado (Ocultar)</option>
-                </select>
+        <div class="field">
+            <label>Imagen Superior (Si elegiste Imagen)</label>
+            <div class="file-box">
+                <input type="file" accept="image/*" onchange="cargarImagen(event, 'logoTop')">
+                <button class="btn-clear" onclick="limpiarImagen('logoTop')">Quitar</button>
             </div>
-            <div class="row">
-                <label>Fondo Caja Puntos</label>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Tamaño Img Sup <span class="val" id="val_topImgSize">44px</span></label>
+                <input type="range" id="topImgSize" min="24" max="90" value="44" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Altura Img Sup <span class="val" id="val_topImgOffset">18px</span></label>
+                <input type="range" id="topImgOffset" min="6" max="55" value="18" oninput="actualizarTodo()">
+            </div>
+        </div>
+    </div>
+
+    <!-- TIPOGRAFÍA Y PROPORCIONES -->
+    <div class="card">
+        <h2>Tipografía y Escala en Pantalla</h2>
+        <div class="field">
+            <label>Fuente del Marcador</label>
+            <select id="fontFamily" onchange="actualizarTodo()">
+                <option value="'Barlow Condensed', sans-serif">Barlow Condensed (TV Broadcast)</option>
+                <option value="'Bebas Neue', sans-serif">Bebas Neue (Impacto Alto)</option>
+                <option value="'Oswald', sans-serif">Oswald (Deportivo Clásico)</option>
+                <option value="'Teko', sans-serif">Teko (NBA / FIBA Moderno)</option>
+                <option value="'Rajdhani', sans-serif">Rajdhani (Técnico / eSports)</option>
+                <option value="'Chakra Petch', sans-serif">Chakra Petch (Digital Pro)</option>
+                <option value="'Russo One', sans-serif">Russo One (Sólido)</option>
+                <option value="'Anton', sans-serif">Anton (Extra Bold)</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Escala General en OBS / PRISM <span class="val" id="val_boardScale">1.00x</span></label>
+            <input type="range" id="boardScale" min="0.65" max="1.45" step="0.05" value="1.0" oninput="actualizarTodo()">
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Tamaño Escudos <span class="val" id="val_teamLogoSize">44px</span></label>
+                <input type="range" id="teamLogoSize" min="28" max="62" value="44" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Texto Equipos <span class="val" id="val_teamFontSize">25px</span></label>
+                <input type="range" id="teamFontSize" min="16" max="36" value="25" oninput="actualizarTodo()">
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Tamaño Puntos <span class="val" id="val_scoreBoxSize">48px</span></label>
+                <input type="range" id="scoreBoxSize" min="34" max="68" value="48" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Tamaño Reloj <span class="val" id="val_clockFontSize">32px</span></label>
+                <input type="range" id="clockFontSize" min="22" max="44" value="32" oninput="actualizarTodo()">
+            </div>
+        </div>
+    </div>
+
+    <!-- COLORES DEL MARCADOR Y RELOJ -->
+    <div class="card">
+        <h2>Colores de Puntos, Reloj y Faltas</h2>
+        <div class="field-row">
+            <div class="field">
+                <label>Borde / Acento</label>
+                <input type="color" id="accentColor" value="#e3b857" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Fondo Puntos</label>
                 <input type="color" id="scoreBgColor" value="#0c0d10" oninput="actualizarTodo()">
             </div>
-            <div class="row">
-                <label>Color Números Puntos</label>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Números Puntos</label>
                 <input type="color" id="scoreTextColor" value="#e3b857" oninput="actualizarTodo()">
             </div>
-            <div class="row">
-                <label>Fondo Caja 24s / Reloj</label>
+            <div class="field">
+                <label>Fondo Reloj</label>
                 <input type="color" id="clockBgColor" value="#141519" oninput="actualizarTodo()">
             </div>
-            <div class="row">
-                <label>Color Números 24 Segundos</label>
-                <input type="color" id="shotTextColor" value="#ff2a2a" oninput="actualizarTodo()">
-            </div>
-            <div class="row">
-                <label>Color Números Reloj</label>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Números Reloj</label>
                 <input type="color" id="clockTextColor" value="#ffffff" oninput="actualizarTodo()">
             </div>
-            <div class="row">
-                <label>Color Texto Cuarto / OT</label>
+            <div class="field">
+                <label>Texto Cuarto (Q1)</label>
                 <input type="color" id="periodTextColor" value="#e3b857" oninput="actualizarTodo()">
             </div>
         </div>
-    </div>
-
-    <div class="actions-bar">
-        <div>
-            <strong style="color: var(--gold);">Producto diseñado por Tiempo Fuera</strong>
-            <div id="pubStatus" style="font-size: 12px; color: #aaa; margin-top: 3px;">Listo para transmitir</div>
-        </div>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button id="btnToggleVisBottom" class="btn-vis-on" onclick="alternarVisibilidadOBS()">👁 Ocultar Marcador en OBS</button>
-            <button class="btn-dark" onclick="resetearLogos()">Limpiar Logos</button>
-            <button class="btn-gold" id="btnPublicar" onclick="transmitirDisenoOBS()">📡 Guardar y Transmitir a OBS</button>
+        <div class="field-row">
+            <div class="field">
+                <label>Falta Activa (1-4)</label>
+                <input type="color" id="foulActiveColor" value="#ffe600" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Falta Bonus (5ta)</label>
+                <input type="color" id="foulBonusColor" value="#ff1744" oninput="actualizarTodo()">
+            </div>
         </div>
     </div>
 
-    <script>
-        const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
-        const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
+    <!-- RELOJ DE POSESIÓN 24S -->
+    <div class="card">
+        <h2>Reloj de Posesión (24s / 14s)</h2>
+        <label class="check-row">
+            <input type="checkbox" id="showShotClock" checked onchange="actualizarTodo()">
+            Mostrar Reloj de Posesión bajo el Marcador
+        </label>
+        <div class="field-row">
+            <div class="field">
+                <label>Fondo Posesión</label>
+                <input type="color" id="shotBgColor" value="#141519" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Números Posesión</label>
+                <input type="color" id="shotTextColor" value="#ff2a2a" oninput="actualizarTodo()">
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label>Color Texto Sup.</label>
+                <input type="color" id="topTextColor" value="#ffffff" oninput="actualizarTodo()">
+            </div>
+            <div class="field">
+                <label>Tamaño Texto Sup. <span class="val" id="val_topTextSize">15px</span></label>
+                <input type="range" id="topTextSize" min="11" max="24" value="15" oninput="actualizarTodo()">
+            </div>
+        </div>
+    </div>
+</main>
 
-        const logos = { liga: '', eq1: '', eq2: '', top: '' };
-        let datosVivos = { points_1: '0', points_2: '0', fouls_1: '0', fouls_2: '0', timer: '10:00', moment: '1', shotclock: '24' };
-        let marcadorVisible = true;
-        let mqttClient = null;
-        let timeoutSenal = null;
+<div class="toast" id="toastMsg">Configuración enviada a PRISM / OBS</div>
 
-        function conectarMQTT() {
-            if (typeof mqtt === 'undefined') return;
-            if (mqttClient) { try { mqttClient.end(true); } catch (e) {} }
-            mqttClient = mqtt.connect(BROKER_URL, { reconnectPeriod: 1000 });
-            mqttClient.on('connect', () => {
-                mqttClient.subscribe(`${CANAL_BASE}/vivo`);
-                mqttClient.subscribe(`${CANAL_BASE}/config`);
-            });
-            mqttClient.on('message', (topic, message) => {
-                if (topic === `${CANAL_BASE}/vivo`) {
-                    try {
-                        datosVivos = JSON.parse(message.toString());
-                        aplicarDatosEnPreview();
-                        const dot = document.getElementById('signalDot');
-                        const txt = document.getElementById('signalText');
-                        dot.classList.remove('checking');
-                        dot.classList.add('online');
-                        txt.textContent = `Señal ScoreSight OK (${datosVivos.points_1 || datosVivos.points1 || 0} - ${datosVivos.points_2 || datosVivos.points2 || 0} | ${datosVivos.timer || '--:--'})`;
-                        clearTimeout(timeoutSenal);
-                        timeoutSenal = setTimeout(() => {
-                            dot.classList.remove('online');
-                            txt.textContent = 'Señal ScoreSight pausada (Clic para reintentar)';
-                        }, 3500);
-                    } catch (e) {}
-                }
-            });
-        }
+<script>
+    const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
+    const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
+    const STORAGE_KEY = 'tf_scoreboard_studio_v3';
 
-        function verificarPuente() {
-            const dot = document.getElementById('signalDot');
-            const txt = document.getElementById('signalText');
-            dot.classList.remove('online');
-            dot.classList.add('checking');
-            txt.textContent = 'Verificando conexión...';
-            conectarMQTT();
-        }
+    let mqttClient = null;
+    let estadoImagenes = { logoLiga: '', logo1: '', logo2: '', logoTop: '' };
+    let marcadorVisible = true;
 
-        function actualizarBotonesVisibilidad() {
-            const btnTop = document.getElementById('btnToggleVisTop');
-            const btnBot = document.getElementById('btnToggleVisBottom');
-            if (!btnTop || !btnBot) return;
-            if (marcadorVisible) {
-                btnTop.className = 'btn-vis-on';
-                btnTop.textContent = '👁 Marcador Visible en OBS';
-                btnBot.className = 'btn-vis-on';
-                btnBot.textContent = '👁 Ocultar Marcador en OBS';
-            } else {
-                btnTop.className = 'btn-vis-off';
-                btnTop.textContent = '🚫 Marcador Oculto en OBS';
-                btnBot.className = 'btn-vis-off';
-                btnBot.textContent = '👁 Mostrar Marcador en OBS';
+    function mostrarToast(texto) {
+        const t = document.getElementById('toastMsg');
+        t.textContent = texto;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    function aclararHex(hex, porcentaje) {
+        hex = (hex || '#1c1e24').replace('#', '');
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        r = Math.min(255, Math.floor(r + (255 - r) * porcentaje));
+        g = Math.min(255, Math.floor(g + (255 - g) * porcentaje));
+        b = Math.min(255, Math.floor(b + (255 - b) * porcentaje));
+        return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function oscurecerHex(hex, porcentaje) {
+        hex = (hex || '#1c1e24').replace('#', '');
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        r = Math.max(0, Math.floor(r * (1 - porcentaje)));
+        g = Math.max(0, Math.floor(g * (1 - porcentaje)));
+        b = Math.max(0, Math.floor(b * (1 - porcentaje)));
+        return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function leerConfiguracionUI() {
+        const getVal = (id) => document.getElementById(id).value;
+        const getNum = (id) => parseFloat(document.getElementById(id).value);
+        const getChk = (id) => document.getElementById(id).checked;
+
+        document.getElementById('val_ligaSize').textContent = getNum('ligaSize') + 'px';
+        document.getElementById('val_boardScale').textContent = getNum('boardScale').toFixed(2) + 'x';
+        document.getElementById('val_teamLogoSize').textContent = getNum('teamLogoSize') + 'px';
+        document.getElementById('val_teamFontSize').textContent = getNum('teamFontSize') + 'px';
+        document.getElementById('val_scoreBoxSize').textContent = getNum('scoreBoxSize') + 'px';
+        document.getElementById('val_clockFontSize').textContent = getNum('clockFontSize') + 'px';
+        document.getElementById('val_topImgSize').textContent = getNum('topImgSize') + 'px';
+        document.getElementById('val_topImgOffset').textContent = getNum('topImgOffset') + 'px';
+        document.getElementById('val_topTextSize').textContent = getNum('topTextSize') + 'px';
+
+        return {
+            visible: marcadorVisible,
+            boardScale: getNum('boardScale'),
+            fontFamily: getVal('fontFamily'),
+            accentColor: getVal('accentColor'),
+            foulActiveColor: getVal('foulActiveColor'),
+            foulBonusColor: getVal('foulBonusColor'),
+            ligaSize: getNum('ligaSize'),
+            teamLogoSize: getNum('teamLogoSize'),
+            teamFontSize: getNum('teamFontSize'),
+            scoreBoxSize: getNum('scoreBoxSize'),
+            clockFontSize: getNum('clockFontSize'),
+            topBadgeEnabled: getChk('topBadgeEnabled'),
+            topBadgeMode: getVal('topBadgeMode'),
+            topImgSize: getNum('topImgSize'),
+            topImgOffset: getNum('topImgOffset'),
+            topTextValue: getVal('topTextValue'),
+            topTextColor: getVal('topTextColor'),
+            topTextSize: getNum('topTextSize'),
+            topTextOffset: 14,
+            showShotClock: getChk('showShotClock'),
+            name1: getVal('name1') || 'LOCAL',
+            bg1Color: getVal('bg1Color'),
+            text1Color: getVal('text1Color'),
+            name2: getVal('name2') || 'VISITA',
+            bg2Color: getVal('bg2Color'),
+            text2Color: getVal('text2Color'),
+            scoreBgColor: getVal('scoreBgColor'),
+            scoreTextColor: getVal('scoreTextColor'),
+            shotBgColor: getVal('shotBgColor'),
+            shotTextColor: getVal('shotTextColor'),
+            clockBgColor: getVal('clockBgColor'),
+            clockTextColor: getVal('clockTextColor'),
+            periodTextColor: getVal('periodTextColor'),
+            logoLiga: estadoImagenes.logoLiga,
+            logo1: estadoImagenes.logo1,
+            logo2: estadoImagenes.logo2,
+            logoTop: estadoImagenes.logoTop
+        };
+    }
+
+    function calcularAnchoAla(cfg) {
+        const maxChars = Math.max((cfg.name1 || '').length, (cfg.name2 || '').length);
+        const fSize = cfg.teamFontSize || 25;
+        const lSize = cfg.teamLogoSize || 44;
+        const anchoTexto = Math.max(140, maxChars * (fSize * 0.56) + 26);
+        return Math.round(anchoTexto + lSize + 28);
+    }
+
+    function renderizarPreview(cfg) {
+        const wrapper = document.getElementById('previewWrapper');
+        wrapper.style.transform = `scale(${cfg.boardScale})`;
+        wrapper.classList.toggle('is-hidden', !cfg.visible);
+
+        const bg1Light = aclararHex(cfg.bg1Color, 0.24);
+        const bg1Dark = oscurecerHex(cfg.bg1Color, 0.25);
+        const bg2Light = aclararHex(cfg.bg2Color, 0.24);
+        const bg2Dark = oscurecerHex(cfg.bg2Color, 0.25);
+
+        const wingWidth = calcularAnchoAla(cfg);
+        const ligaBoxHeight = Math.max(92, cfg.ligaSize || 92);
+        const teamLogoSize = cfg.teamLogoSize || 44;
+        const teamFontSize = cfg.teamFontSize || 25;
+
+        const ptsFontSize = cfg.scoreBoxSize || 48;
+        const scoreBoxHeight = Math.round(ptsFontSize * 1.42);
+        const ptsMinWidth = Math.round(ptsFontSize * 1.18);
+        const dashSize = Math.round(ptsFontSize * 0.62);
+        const clockFontSize = cfg.clockFontSize || 32;
+        const periodFontSize = Math.round(clockFontSize * 0.74);
+
+        const ligaHTML = cfg.logoLiga ? `<img src="${cfg.logoLiga}" alt="Liga">` : '';
+
+        let topBadgeHTML = '';
+        if (cfg.topBadgeEnabled) {
+            if (cfg.topBadgeMode === 'image' && cfg.logoTop) {
+                topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt=""></div>`;
+            } else if (cfg.topBadgeMode === 'text' && (cfg.topTextValue || '').trim() !== '') {
+                topBadgeHTML = `<div class="lm-top-overlay-text" style="top: -${cfg.topTextOffset}px; font-size: ${cfg.topTextSize}px; color: ${cfg.topTextColor};">${cfg.topTextValue}</div>`;
             }
         }
 
-        function alternarVisibilidadOBS() {
-            marcadorVisible = !marcadorVisible;
-            actualizarBotonesVisibilidad();
-            transmitirDisenoOBS();
+        const shotClockHTML = cfg.showShotClock ? `<div class="lm-shotclock-badge">24</div>` : '';
+        let faltasDemo = '';
+        for (let i = 1; i <= 5; i++) {
+            const activo = i <= 2;
+            const col = activo ? cfg.foulActiveColor : 'rgba(0,0,0,0.52)';
+            const brd = activo ? '1px solid #111' : '1px solid rgba(255,255,255,0.38)';
+            faltasDemo += `<span class="foul-bar" style="background:${col}; border:${brd};"></span>`;
         }
 
-        function aclararHex(hex, porcentaje) {
-            hex = (hex || '#1c1e24').replace('#', '');
-            let r = parseInt(hex.substring(0, 2), 16);
-            let g = parseInt(hex.substring(2, 4), 16);
-            let b = parseInt(hex.substring(4, 6), 16);
-            r = Math.min(255, Math.floor(r + (255 - r) * porcentaje));
-            g = Math.min(255, Math.floor(g + (255 - g) * porcentaje));
-            b = Math.min(255, Math.floor(b + (255 - b) * porcentaje));
-            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-        }
+        const img1HTML = cfg.logo1 ? `<img class="lm-team-logo" src="${cfg.logo1}" alt="">` : '';
+        const img2HTML = cfg.logo2 ? `<img class="lm-team-logo" src="${cfg.logo2}" alt="">` : '';
 
-        function oscurecerHex(hex, porcentaje) {
-            hex = (hex || '#1c1e24').replace('#', '');
-            let r = parseInt(hex.substring(0, 2), 16);
-            let g = parseInt(hex.substring(2, 4), 16);
-            let b = parseInt(hex.substring(4, 6), 16);
-            r = Math.max(0, Math.floor(r * (1 - porcentaje)));
-            g = Math.max(0, Math.floor(g * (1 - porcentaje)));
-            b = Math.max(0, Math.floor(b * (1 - porcentaje)));
-            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-        }
-
-        function procesarLogoRapido(file, key, pathInputId) {
-            const status = document.getElementById('pubStatus');
-            status.style.color = '#ffd740';
-            status.textContent = `Cargando imagen (${file.name})...`;
-
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                const img = new Image();
-                img.onload = function() {
-                    const targetH = 135;
-                    const scale = img.height > targetH ? (targetH / img.height) : 1;
-                    const finalW = Math.max(1, Math.round(img.width * scale));
-                    const finalH = Math.max(1, Math.round(img.height * scale));
-
-                    const outCanvas = document.createElement('canvas');
-                    outCanvas.width = finalW;
-                    outCanvas.height = finalH;
-                    const oCtx = outCanvas.getContext('2d');
-                    oCtx.clearRect(0, 0, finalW, finalH);
-                    oCtx.drawImage(img, 0, 0, finalW, finalH);
-
-                    const dataUrl = outCanvas.toDataURL('image/webp', 0.82);
-                    logos[key] = dataUrl;
-
-                    const pInput = document.getElementById(pathInputId);
-                    if (pInput) pInput.value = `OK (${Math.round(dataUrl.length / 1024)} KB)`;
-
-                    actualizarTodo();
-                    transmitirDisenoOBS();
-                };
-                img.src = ev.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function bindLogo(inputId, key, pathInputId) {
-            const el = document.getElementById(inputId);
-            if (!el) return;
-            el.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) procesarLogoRapido(file, key, pathInputId);
-            });
-        }
-
-        bindLogo('logoLigaIn', 'liga', 'logoLigaPath');
-        bindLogo('logo1In', 'eq1', 'logo1Path');
-        bindLogo('logo2In', 'eq2', 'logo2Path');
-        bindLogo('logoTopIn', 'top', 'logoTopPath');
-
-        function sincronizarControlesUI() {
-            const mode = document.getElementById('topBadgeMode').value;
-            document.getElementById('topImageControls').style.display = mode === 'image' ? 'block' : 'none';
-            document.getElementById('topTextControls').style.display = mode === 'text' ? 'block' : 'none';
-
-            document.getElementById('boardScaleVal').textContent = document.getElementById('boardScale').value + '%';
-            document.getElementById('ligaSizeVal').textContent = document.getElementById('ligaSize').value + 'px';
-            document.getElementById('teamLogoSizeVal').textContent = document.getElementById('teamLogoSize').value + 'px';
-            document.getElementById('teamFontSizeVal').textContent = document.getElementById('teamFontSize').value + 'px';
-            document.getElementById('scoreBoxSizeVal').textContent = document.getElementById('scoreBoxSize').value + 'px';
-            document.getElementById('clockFontSizeVal').textContent = document.getElementById('clockFontSize').value + 'px';
-            document.getElementById('topImgSizeVal').textContent = document.getElementById('topImgSize').value + 'px';
-            document.getElementById('topImgOffsetVal').textContent = document.getElementById('topImgOffset').value + 'px';
-            document.getElementById('topTextSizeVal').textContent = document.getElementById('topTextSize').value + 'px';
-            document.getElementById('topTextOffsetVal').textContent = document.getElementById('topTextOffset').value + 'px';
-        }
-
-        function obtenerConfig() {
-            const scalePct = parseInt(document.getElementById('boardScale').value, 10) || 100;
-            const clockBg = document.getElementById('clockBgColor').value;
-            return {
-                visible: marcadorVisible,
-                boardScale: +(scalePct / 100).toFixed(2),
-                fontFamily: document.getElementById('fontFamily').value,
-                accentColor: document.getElementById('accentColor').value,
-                foulActiveColor: document.getElementById('foulActiveColor').value,
-                foulBonusColor: document.getElementById('foulBonusColor').value,
-                ligaSize: parseInt(document.getElementById('ligaSize').value, 10) || 92,
-                teamLogoSize: parseInt(document.getElementById('teamLogoSize').value, 10) || 44,
-                teamFontSize: parseInt(document.getElementById('teamFontSize').value, 10) || 25,
-                scoreBoxSize: parseInt(document.getElementById('scoreBoxSize').value, 10) || 48,
-                clockFontSize: parseInt(document.getElementById('clockFontSize').value, 10) || 32,
-                topBadgeEnabled: document.getElementById('topBadgeEnabled').value === '1',
-                topBadgeMode: document.getElementById('topBadgeMode').value,
-                topImgSize: parseInt(document.getElementById('topImgSize').value, 10) || 44,
-                topImgOffset: parseInt(document.getElementById('topImgOffset').value, 10) || 18,
-                topTextValue: (document.getElementById('topTextValue').value || '').slice(0, 24),
-                topTextColor: document.getElementById('topTextColor').value,
-                topTextSize: parseInt(document.getElementById('topTextSize').value, 10) || 15,
-                topTextOffset: parseInt(document.getElementById('topTextOffset').value, 10) || 14,
-                showShotClock: document.getElementById('showShotClock').value === '1',
-                name1: (document.getElementById('name1').value || 'LOCAL').slice(0, 24),
-                bg1Color: document.getElementById('bg1Color').value,
-                text1Color: document.getElementById('text1Color').value,
-                name2: (document.getElementById('name2').value || 'VISITA').slice(0, 24),
-                bg2Color: document.getElementById('bg2Color').value,
-                text2Color: document.getElementById('text2Color').value,
-                scoreBgColor: document.getElementById('scoreBgColor').value,
-                scoreTextColor: document.getElementById('scoreTextColor').value,
-                shotBgColor: clockBg,
-                shotTextColor: document.getElementById('shotTextColor').value,
-                clockBgColor: clockBg,
-                clockTextColor: document.getElementById('clockTextColor').value,
-                periodTextColor: document.getElementById('periodTextColor').value,
-                logoLiga: logos.liga,
-                logo1: logos.eq1,
-                logo2: logos.eq2,
-                logoTop: logos.top
-            };
-        }
-
-        function calcularAnchoAla(cfg) {
-            const maxChars = Math.max(cfg.name1.length, cfg.name2.length);
-            const fSize = cfg.teamFontSize || 25;
-            const lSize = cfg.teamLogoSize || 44;
-            const anchoTexto = Math.max(140, maxChars * (fSize * 0.56) + 26);
-            return Math.round(anchoTexto + lSize + 28);
-        }
-
-        function formatearPeriodo(momentRaw, overtimeLed) {
-            if (overtimeLed !== undefined && overtimeLed !== "" && overtimeLed !== "0") return "OT";
-            const n = parseInt(String(momentRaw).replace(/[^0-9]/g, ""), 10);
-            if (isNaN(n) || n <= 0) return "Q1";
-            if (n <= 4) return "Q" + n;
-            return "OT" + (n - 4);
-        }
-
-        function generarHTMLMarcador(cfg) {
-            const bg1Light = aclararHex(cfg.bg1Color, 0.24);
-            const bg1Dark = oscurecerHex(cfg.bg1Color, 0.25);
-            const bg2Light = aclararHex(cfg.bg2Color, 0.24);
-            const bg2Dark = oscurecerHex(cfg.bg2Color, 0.25);
-
-            const wingWidth = calcularAnchoAla(cfg);
-            const ligaBoxHeight = Math.max(92, cfg.ligaSize);
-            const teamLogoSize = cfg.teamLogoSize || 44;
-            const teamFontSize = cfg.teamFontSize || 25;
-
-            const ptsFontSize = cfg.scoreBoxSize || 48;
-            const scoreBoxHeight = Math.round(ptsFontSize * 1.42);
-            const ptsMinWidth = Math.round(ptsFontSize * 1.18);
-            const dashSize = Math.round(ptsFontSize * 0.62);
-            const clockFontSize = cfg.clockFontSize || 32;
-            const periodFontSize = Math.round(clockFontSize * 0.74);
-
-            function renderFaltas(count) {
-                let html = '';
-                const num = parseInt(count, 10) || 0;
-                for (let i = 1; i <= 5; i++) {
-                    const isBonus = i === 5;
-                    const active = i <= num;
-                    const bg = active ? (isBonus ? cfg.foulBonusColor : cfg.foulActiveColor) : 'rgba(0,0,0,0.52)';
-                    const border = active ? '1px solid #111111' : '1px solid rgba(255,255,255,0.38)';
-                    const shadow = active ? `0 0 6px rgba(0,0,0,0.9), 0 0 7px ${isBonus ? cfg.foulBonusColor : cfg.foulActiveColor}` : 'none';
-                    html += `<span class="foul-bar" data-idx="${i}" style="background:${bg}; border:${border}; box-shadow:${shadow};"></span>`;
-                }
-                return html;
-            }
-
-            const ligaHTML = cfg.logoLiga
-                ? `<img src="${cfg.logoLiga}" alt="Liga">`
-                : `<div class="lm-league-placeholder">LOGO<br>LIGA</div>`;
-
-            let topBadgeHTML = '';
-            if (cfg.topBadgeEnabled) {
-                if (cfg.topBadgeMode === 'image') {
-                    if (cfg.logoTop) {
-                        topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt=""></div>`;
-                    } else {
-                        topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><div class="lm-top-placeholder" style="height:${cfg.topImgSize}px;">GRÁFICA</div></div>`;
-                    }
-                } else if (cfg.topBadgeMode === 'text' && cfg.topTextValue.trim() !== '') {
-                    topBadgeHTML = `<div class="lm-top-overlay-text" style="top: -${cfg.topTextOffset}px; font-size: ${cfg.topTextSize}px; color: ${cfg.topTextColor};">${cfg.topTextValue}</div>`;
-                }
-            }
-
-            const p1Val = (datosVivos.points_1 || datosVivos.points1 || datosVivos.score_1 || datosVivos.score1 || '0').replace(/[^0-9]/g, '') || '0';
-            const p2Val = (datosVivos.points_2 || datosVivos.points2 || datosVivos.score_2 || datosVivos.score2 || '0').replace(/[^0-9]/g, '') || '0';
-            const f1Val = (datosVivos.fouls_1 || '0').replace(/[^0-9]/g, '') || '0';
-            const f2Val = (datosVivos.fouls_2 || '0').replace(/[^0-9]/g, '') || '0';
-            const scVal = (datosVivos.shotclock || '24').replace(/[^0-9]/g, '');
-            const timerVal = datosVivos.timer || '10:00';
-            const periodVal = formatearPeriodo(datosVivos.moment, datosVivos.overtime_led);
-
-            const shotClockHTML = cfg.showShotClock
-                ? `<div class="lm-shotclock-badge" id="prevShotclock">${scVal}</div>`
-                : '';
-
-            const img1HTML = cfg.logo1 ? `<img class="lm-team-logo" src="${cfg.logo1}" alt="">` : '';
-            const img2HTML = cfg.logo2 ? `<img class="lm-team-logo" src="${cfg.logo2}" alt="">` : '';
-
-            return `
-                <style>
-                    .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; transform: scale(${cfg.boardScale}); transform-origin: center center; filter: drop-shadow(0 16px 32px rgba(0,0,0,0.88)) drop-shadow(0 4px 10px rgba(0,0,0,0.7)); }
-                    .lm-league-box { height: ${ligaBoxHeight}px; min-width: 86px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px; }
-                    .lm-league-box img { height: ${cfg.ligaSize}px; width: auto; max-width: ${Math.round(cfg.ligaSize * 1.35)}px; object-fit: contain; filter: drop-shadow(0 5px 12px rgba(0,0,0,0.9)); }
-                    .lm-league-placeholder { border: 1px dashed ${cfg.accentColor}; color: ${cfg.accentColor}; font-size: 14px; font-weight: 700; padding: 10px 12px; border-radius: 6px; text-align: center; line-height: 1.1; background: rgba(17,18,21,0.85); }
-                    .lm-track { display: inline-flex; align-items: center; position: relative; }
-                    .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -4px 10px rgba(0,0,0,0.55); overflow: hidden; }
-                    .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 2px, transparent 2px, transparent 6px); pointer-events: none; }
-                    .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; border-left: none; border-radius: 0; }
-                    .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.8)); }
-                    .lm-team-meta { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-width: 0; }
-                    .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 3px rgba(0,0,0,0.85), 0 -1px 0 rgba(255,255,255,0.2); }
-                    .lm-fouls { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; width: 100%; }
-                    .lm-team-wing.away .lm-fouls { flex-direction: row-reverse; justify-content: center; }
-                    .foul-bar { width: 19px; height: 5px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
-                    .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.14)} 0%, ${cfg.scoreBgColor} 50%, ${oscurecerHex(cfg.scoreBgColor, 0.35)} 100%); padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; box-shadow: 0 10px 24px rgba(0,0,0,0.92), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -4px 10px rgba(0,0,0,0.7); z-index: 3; }
-                    .lm-top-overlay-img { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; }
-                    .lm-top-overlay-img img { width: auto; max-width: 210px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.95)); }
-                    .lm-top-placeholder { border: 1px dashed ${cfg.accentColor}; color: ${cfg.accentColor}; font-size: 11px; font-weight: 700; padding: 0 12px; border-radius: 5px; display: flex; align-items: center; justify-content: center; background: rgba(17,18,21,0.9); white-space: nowrap; }
-                    .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.15)}, ${cfg.scoreBgColor}); border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; box-shadow: 0 5px 12px rgba(0,0,0,0.92), inset 0 1px 0 rgba(255,255,255,0.25); z-index: 5; }
-                    .lm-pts { font-size: ${ptsFontSize}px; font-weight: 800; color: ${cfg.scoreTextColor}; min-width: ${ptsMinWidth}px; text-align: center; font-variant-numeric: tabular-nums; line-height: 0.92; letter-spacing: -0.5px; text-shadow: 0 3px 8px rgba(0,0,0,0.9); }
-                    .lm-score-dash { font-size: ${dashSize}px; font-weight: 800; color: ${cfg.accentColor}; line-height: 1; opacity: 0.85; padding: 0 1px; }
-                    .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, ${aclararHex(cfg.shotBgColor, 0.15)}, ${cfg.shotBgColor}); color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; box-shadow: 0 6px 14px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.22); z-index: 4; }
-                    .lm-clock-box { display: flex; align-items: center; height: 60px; background: linear-gradient(180deg, ${aclararHex(cfg.clockBgColor, 0.15)} 0%, ${cfg.clockBgColor} 55%, ${oscurecerHex(cfg.clockBgColor, 0.3)} 100%); padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -4px 10px rgba(0,0,0,0.55); }
-                    .lm-timer { font-size: ${clockFontSize}px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: ${Math.round(clockFontSize * 2.25)}px; text-align: center; line-height: 1; text-shadow: 0 2px 5px rgba(0,0,0,0.85); }
-                    .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.25)); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); box-shadow: inset 0 1px 0 rgba(255,255,255,0.15); line-height: 1; }
-                </style>
-                <div class="lm-bar">
-                    <div class="lm-league-box">${ligaHTML}</div>
-                    <div class="lm-track">
-                        <div class="lm-team-wing" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
-                            ${img1HTML}
-                            <div class="lm-team-meta">
-                                <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
-                                <div class="lm-fouls" id="prevFouls1">${renderFaltas(f1Val)}</div>
-                            </div>
-                        </div>
-                        <div class="lm-scores-elevated">
-                            ${topBadgeHTML}
-                            <div class="lm-pts" id="prevPts1">${p1Val}</div>
-                            <div class="lm-score-dash">-</div>
-                            <div class="lm-pts" id="prevPts2">${p2Val}</div>
-                            ${shotClockHTML}
-                        </div>
-                        <div class="lm-team-wing away" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
-                            ${img2HTML}
-                            <div class="lm-team-meta">
-                                <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
-                                <div class="lm-fouls" id="prevFouls2">${renderFaltas(f2Val)}</div>
-                            </div>
-                        </div>
-                        <div class="lm-clock-box">
-                            <div class="lm-timer" id="prevTimer">${timerVal}</div>
-                            <div class="lm-period" id="prevPeriod">${periodVal}</div>
+        document.getElementById('previewMount').innerHTML = `
+            <style>
+                .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.88)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7)); }
+                .lm-league-box { height: ${ligaBoxHeight}px; min-width: 86px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px; }
+                .lm-league-box img { height: ${cfg.ligaSize}px; width: auto; max-width: ${Math.round(cfg.ligaSize * 1.35)}px; object-fit: contain; filter: drop-shadow(0 5px 12px rgba(0,0,0,0.9)); }
+                .lm-track { display: inline-flex; align-items: center; position: relative; }
+                .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -4px 10px rgba(0,0,0,0.55); overflow: hidden; }
+                .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 2px, transparent 2px, transparent 6px); pointer-events: none; }
+                .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; border-left: none; border-radius: 0; }
+                .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.8)); }
+                .lm-team-meta { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-width: 0; }
+                .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 3px rgba(0,0,0,0.85), 0 -1px 0 rgba(255,255,255,0.2); }
+                .lm-fouls { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; width: 100%; }
+                .lm-team-wing.away .lm-fouls { flex-direction: row-reverse; justify-content: center; }
+                .foul-bar { width: 19px; height: 5px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+                .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.14)} 0%, ${cfg.scoreBgColor} 50%, ${oscurecerHex(cfg.scoreBgColor, 0.35)} 100%); padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; box-shadow: 0 10px 24px rgba(0,0,0,0.92), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -4px 10px rgba(0,0,0,0.7); z-index: 3; }
+                .lm-top-overlay-img { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; }
+                .lm-top-overlay-img img { width: auto; max-width: 210px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.95)); }
+                .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.15)}, ${cfg.scoreBgColor}); border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; box-shadow: 0 5px 12px rgba(0,0,0,0.92), inset 0 1px 0 rgba(255,255,255,0.25); z-index: 5; }
+                .lm-pts { font-size: ${ptsFontSize}px; font-weight: 800; color: ${cfg.scoreTextColor}; min-width: ${ptsMinWidth}px; text-align: center; font-variant-numeric: tabular-nums; line-height: 0.92; letter-spacing: -0.5px; text-shadow: 0 3px 8px rgba(0,0,0,0.9); }
+                .lm-score-dash { font-size: ${dashSize}px; font-weight: 800; color: ${cfg.accentColor}; line-height: 1; opacity: 0.85; padding: 0 1px; }
+                .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, ${aclararHex(cfg.shotBgColor, 0.15)}, ${cfg.shotBgColor}); color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; box-shadow: 0 6px 14px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.22); z-index: 4; }
+                .lm-clock-box { display: flex; align-items: center; height: 60px; background: linear-gradient(180deg, ${aclararHex(cfg.clockBgColor, 0.15)} 0%, ${cfg.clockBgColor} 55%, ${oscurecerHex(cfg.clockBgColor, 0.3)} 100%); padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -4px 10px rgba(0,0,0,0.55); }
+                .lm-timer { font-size: ${clockFontSize}px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: ${Math.round(clockFontSize * 2.25)}px; text-align: center; line-height: 1; text-shadow: 0 2px 5px rgba(0,0,0,0.85); }
+                .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.25)); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); box-shadow: inset 0 1px 0 rgba(255,255,255,0.15); line-height: 1; }
+            </style>
+            <div class="lm-bar">
+                <div class="lm-league-box">${ligaHTML}</div>
+                <div class="lm-track">
+                    <div class="lm-team-wing" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
+                        ${img1HTML}
+                        <div class="lm-team-meta">
+                            <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
+                            <div class="lm-fouls">${faltasDemo}</div>
                         </div>
                     </div>
+                    <div class="lm-scores-elevated">
+                        ${topBadgeHTML}
+                        <div class="lm-pts">64</div>
+                        <div class="lm-score-dash">-</div>
+                        <div class="lm-pts">58</div>
+                        ${shotClockHTML}
+                    </div>
+                    <div class="lm-team-wing away" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
+                        ${img2HTML}
+                        <div class="lm-team-meta">
+                            <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
+                            <div class="lm-fouls">${faltasDemo}</div>
+                        </div>
+                    </div>
+                    <div class="lm-clock-box">
+                        <div class="lm-timer">04:32</div>
+                        <div class="lm-period">Q4</div>
+                    </div>
                 </div>
-            `;
-        }
+            </div>
+        `;
+    }
 
-        function aplicarDatosEnPreview() {
-            const p1 = (datosVivos.points_1 || datosVivos.points1 || datosVivos.score_1 || datosVivos.score1 || '').replace(/[^0-9]/g, '');
-            const p2 = (datosVivos.points_2 || datosVivos.points2 || datosVivos.score_2 || datosVivos.score2 || '').replace(/[^0-9]/g, '');
-            if (p1 !== '' && document.getElementById('prevPts1')) document.getElementById('prevPts1').textContent = p1;
-            if (p2 !== '' && document.getElementById('prevPts2')) document.getElementById('prevPts2').textContent = p2;
-            if (datosVivos.shotclock !== undefined && document.getElementById('prevShotclock')) {
-                document.getElementById('prevShotclock').textContent = datosVivos.shotclock.replace(/[^0-9]/g, '');
+    function actualizarTodo() {
+        const cfg = leerConfiguracionUI();
+        renderizarPreview(cfg);
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+        } catch (e) {}
+    }
+
+    function publicarEnNube(cfg) {
+        if (mqttClient && mqttClient.connected) {
+            mqttClient.publish(`${CANAL_BASE}/config`, JSON.stringify(cfg), { qos: 1, retain: true });
+            return true;
+        }
+        return false;
+    }
+
+    function guardarYTransmitir() {
+        const cfg = leerConfiguracionUI();
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch (e) {}
+        if (publicarEnNube(cfg)) {
+            mostrarToast('✅ Diseño y logos enviados a PRISM / OBS');
+        } else {
+            conectarMQTT(() => {
+                publicarEnNube(cfg);
+                mostrarToast('✅ Diseño y logos enviados a PRISM / OBS');
+            });
+        }
+    }
+
+    function alternarVisibilidad() {
+        marcadorVisible = !marcadorVisible;
+        const btn = document.getElementById('btnVisibilidad');
+        if (marcadorVisible) {
+            btn.classList.remove('hidden-state');
+            btn.textContent = '👁️ Marcador Visible en Vivo';
+        } else {
+            btn.classList.add('hidden-state');
+            btn.textContent = '🙈 Marcador Oculto en Vivo';
+        }
+        guardarYTransmitir();
+    }
+
+    function intercambiarEquipos() {
+        const n1 = document.getElementById('name1').value;
+        const bg1 = document.getElementById('bg1Color').value;
+        const tx1 = document.getElementById('text1Color').value;
+        const img1 = estadoImagenes.logo1;
+
+        document.getElementById('name1').value = document.getElementById('name2').value;
+        document.getElementById('bg1Color').value = document.getElementById('bg2Color').value;
+        document.getElementById('text1Color').value = document.getElementById('text2Color').value;
+        estadoImagenes.logo1 = estadoImagenes.logo2;
+
+        document.getElementById('name2').value = n1;
+        document.getElementById('bg2Color').value = bg1;
+        document.getElementById('text2Color').value = tx1;
+        estadoImagenes.logo2 = img1;
+
+        guardarYTransmitir();
+        mostrarToast('⇄ Local y Visita intercambiados');
+    }
+
+    function cargarImagen(event, clave) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const maxDim = clave === 'logoLiga' ? 240 : 160;
+                let w = img.width;
+                let h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+                    else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                estadoImagenes[clave] = canvas.toDataURL('image/png');
+                actualizarTodo();
+                mostrarToast('🖼️ Imagen cargada (pulsa Guardar para enviar)');
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function limpiarImagen(clave) {
+        estadoImagenes[clave] = '';
+        actualizarTodo();
+    }
+
+    function copiarUrlLive() {
+        const urlActual = window.location.href;
+        const urlLive = urlActual.includes('index.html')
+            ? urlActual.replace('index.html', 'live.html')
+            : urlActual.replace(/\/?$/, '/live.html');
+        navigator.clipboard.writeText(urlLive).then(() => {
+            mostrarToast('📋 URL de live.html copiada al portapapeles');
+        });
+    }
+
+    function restaurarDesdeStorage() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const cfg = JSON.parse(raw);
+            marcadorVisible = cfg.visible !== false;
+            const btn = document.getElementById('btnVisibilidad');
+            if (!marcadorVisible) {
+                btn.classList.add('hidden-state');
+                btn.textContent = '🙈 Marcador Oculto en Vivo';
             }
-            if (datosVivos.timer && document.getElementById('prevTimer')) {
-                document.getElementById('prevTimer').textContent = datosVivos.timer;
+            const campos = [
+                'boardScale', 'fontFamily', 'accentColor', 'foulActiveColor', 'foulBonusColor',
+                'ligaSize', 'teamLogoSize', 'teamFontSize', 'scoreBoxSize', 'clockFontSize',
+                'topBadgeMode', 'topImgSize', 'topImgOffset', 'topTextValue', 'topTextColor', 'topTextSize',
+                'name1', 'bg1Color', 'text1Color', 'name2', 'bg2Color', 'text2Color',
+                'scoreBgColor', 'scoreTextColor', 'shotBgColor', 'shotTextColor',
+                'clockBgColor', 'clockTextColor', 'periodTextColor'
+            ];
+            campos.forEach(id => {
+                if (cfg[id] !== undefined && document.getElementById(id)) {
+                    document.getElementById(id).value = cfg[id];
+                }
+            });
+            document.getElementById('topBadgeEnabled').checked = !!cfg.topBadgeEnabled;
+            document.getElementById('showShotClock').checked = cfg.showShotClock !== false;
+            estadoImagenes.logoLiga = cfg.logoLiga || '';
+            estadoImagenes.logo1 = cfg.logo1 || '';
+            estadoImagenes.logo2 = cfg.logo2 || '';
+            estadoImagenes.logoTop = cfg.logoTop || '';
+        } catch (e) {}
+    }
+
+    function conectarMQTT(onReady) {
+        if (typeof mqtt === 'undefined') return;
+        if (mqttClient) { try { mqttClient.end(true); } catch (e) {} }
+        const studioId = 'tf_studio_' + Math.random().toString(16).slice(2, 8);
+        mqttClient = mqtt.connect(BROKER_URL, { clientId: studioId, reconnectPeriod: 1500 });
+        mqttClient.on('connect', () => {
+            const dot = document.getElementById('signalDot');
+            const txt = document.getElementById('signalText');
+            if (dot && txt) {
+                dot.classList.remove('checking');
+                dot.classList.add('online');
+                txt.textContent = 'Estudio listo para enviar a PRISM / OBS';
             }
-            if (datosVivos.moment && document.getElementById('prevPeriod')) {
-                document.getElementById('prevPeriod').textContent = formatearPeriodo(datosVivos.moment, datosVivos.overtime_led);
-            }
-            if (datosVivos.fouls_1 !== undefined || datosVivos.fouls_2 !== undefined) {
-                const mount = document.getElementById('previewMount');
-                if (mount) mount.innerHTML = generarHTMLMarcador(obtenerConfig());
-            }
-        }
+            if (typeof onReady === 'function') onReady();
+        });
+    }
 
-        function actualizarTodo() {
-            sincronizarControlesUI();
-            const cfg = obtenerConfig();
-            localStorage.setItem('tf_scoreboard_backup', JSON.stringify(cfg));
-            const mount = document.getElementById('previewMount');
-            if (mount) mount.innerHTML = generarHTMLMarcador(cfg);
-        }
-
-        function resetearLogos() {
-            logos.liga = '';
-            logos.eq1 = '';
-            logos.eq2 = '';
-            logos.top = '';
-            document.getElementById('logoLigaPath').value = '';
-            document.getElementById('logo1Path').value = '';
-            document.getElementById('logo2Path').value = '';
-            document.getElementById('logoTopPath').value = '';
-            document.getElementById('logoLigaIn').value = '';
-            document.getElementById('logo1In').value = '';
-            document.getElementById('logo2In').value = '';
-            document.getElementById('logoTopIn').value = '';
-            actualizarTodo();
-            transmitirDisenoOBS();
-        }
-
-        function transmitirDisenoOBS() {
-            const status = document.getElementById('pubStatus');
-            const cfg = obtenerConfig();
-            localStorage.setItem('tf_scoreboard_backup', JSON.stringify(cfg));
-
-            if (mqttClient && mqttClient.connected) {
-                mqttClient.publish(`${CANAL_BASE}/config`, JSON.stringify(cfg), { qos: 1, retain: true });
-                status.style.color = '#81c784';
-                status.textContent = `Diseño y logos transmitidos a OBS (${new Date().toLocaleTimeString()})`;
-            } else {
-                conectarMQTT();
-                setTimeout(() => {
-                    if (mqttClient && mqttClient.connected) {
-                        mqttClient.publish(`${CANAL_BASE}/config`, JSON.stringify(cfg), { qos: 1, retain: true });
-                        status.style.color = '#81c784';
-                        status.textContent = `Diseño y logos transmitidos a OBS (${new Date().toLocaleTimeString()})`;
-                    } else {
-                        status.style.color = '#ff5252';
-                        status.textContent = 'Reconectando canal... Presiona Guardar nuevamente.';
-                    }
-                }, 1200);
-            }
-        }
-
-        function cargarRespaldoLocal() {
-            try {
-                const raw = localStorage.getItem('tf_scoreboard_backup');
-                if (!raw) return;
-                const cfg = JSON.parse(raw);
-                if (typeof cfg.visible === 'boolean') marcadorVisible = cfg.visible;
-                if (cfg.boardScale) document.getElementById('boardScale').value = Math.round(cfg.boardScale * 100);
-                document.getElementById('fontFamily').value = cfg.fontFamily || "'Barlow Condensed', sans-serif";
-                document.getElementById('accentColor').value = cfg.accentColor || "#e3b857";
-                document.getElementById('foulActiveColor').value = cfg.foulActiveColor || "#ffe600";
-                document.getElementById('foulBonusColor').value = cfg.foulBonusColor || "#ff1744";
-                document.getElementById('ligaSize').value = cfg.ligaSize || 92;
-                document.getElementById('teamLogoSize').value = cfg.teamLogoSize || 44;
-                document.getElementById('teamFontSize').value = cfg.teamFontSize || 25;
-                document.getElementById('scoreBoxSize').value = cfg.scoreBoxSize || 48;
-                document.getElementById('clockFontSize').value = cfg.clockFontSize || 32;
-                document.getElementById('topBadgeEnabled').value = cfg.topBadgeEnabled ? '1' : '0';
-                document.getElementById('topBadgeMode').value = cfg.topBadgeMode || 'image';
-                document.getElementById('topImgSize').value = cfg.topImgSize || 44;
-                document.getElementById('topImgOffset').value = cfg.topImgOffset || 18;
-                document.getElementById('topTextValue').value = cfg.topTextValue || '';
-                document.getElementById('topTextColor').value = cfg.topTextColor || '#ffffff';
-                document.getElementById('topTextSize').value = cfg.topTextSize || 15;
-                document.getElementById('topTextOffset').value = cfg.topTextOffset || 14;
-                document.getElementById('showShotClock').value = cfg.showShotClock ? '1' : '0';
-                document.getElementById('name1').value = cfg.name1 || 'DREAMZ';
-                document.getElementById('bg1Color').value = cfg.bg1Color || '#1c1e24';
-                document.getElementById('text1Color').value = cfg.text1Color || '#ffffff';
-                document.getElementById('name2').value = cfg.name2 || 'BRISAS';
-                document.getElementById('bg2Color').value = cfg.bg2Color || '#1c1e24';
-                document.getElementById('text2Color').value = cfg.text2Color || '#ffffff';
-                document.getElementById('scoreBgColor').value = cfg.scoreBgColor || '#0c0d10';
-                document.getElementById('scoreTextColor').value = cfg.scoreTextColor || '#e3b857';
-                document.getElementById('clockBgColor').value = cfg.clockBgColor || '#141519';
-                document.getElementById('shotTextColor').value = cfg.shotTextColor || '#ff2a2a';
-                document.getElementById('clockTextColor').value = cfg.clockTextColor || '#ffffff';
-                document.getElementById('periodTextColor').value = cfg.periodTextColor || '#e3b857';
-
-                logos.liga = cfg.logoLiga || '';
-                logos.eq1 = cfg.logo1 || '';
-                logos.eq2 = cfg.logo2 || '';
-                logos.top = cfg.logoTop || '';
-
-                document.getElementById('logoLigaPath').value = logos.liga ? `OK (${Math.round(logos.liga.length / 1024)} KB)` : '';
-                document.getElementById('logo1Path').value = logos.eq1 ? `OK (${Math.round(logos.eq1.length / 1024)} KB)` : '';
-                document.getElementById('logo2Path').value = logos.eq2 ? `OK (${Math.round(logos.eq2.length / 1024)} KB)` : '';
-                document.getElementById('logoTopPath').value = logos.top ? `OK (${Math.round(logos.top.length / 1024)} KB)` : '';
-            } catch (e) {}
-            actualizarBotonesVisibilidad();
-            actualizarTodo();
-        }
-
-        cargarRespaldoLocal();
+    function verificarPuente() {
+        const dot = document.getElementById('signalDot');
+        const txt = document.getElementById('signalText');
+        dot.classList.remove('online');
+        dot.classList.add('checking');
+        txt.textContent = 'Reconectando Estudio...';
         conectarMQTT();
-    </script>
+    }
+
+    restaurarDesdeStorage();
+    actualizarTodo();
+    conectarMQTT();
+</script>
 </body>
 </html>
