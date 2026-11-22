@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Estudio Scoreboard — Tiempo Fuera</title>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
         :root {
             --bg-panel: #111215;
@@ -407,7 +408,7 @@
     <div class="actions-bar">
         <div>
             <strong style="color: var(--gold);">Producto diseñado por Tiempo Fuera</strong>
-            <div id="pubStatus" style="font-size: 12px; color: #aaa; margin-top: 3px;">Listo para transmitir diseño al lanzador web.</div>
+            <div id="pubStatus" style="font-size: 12px; color: #aaa; margin-top: 3px;">Conectando al canal de transmisión...</div>
         </div>
         <div style="display: flex; gap: 10px;">
             <button class="btn-dark" onclick="resetearLogos()">Limpiar Logos</button>
@@ -416,11 +417,42 @@
     </div>
 
     <script>
-        // DEBE SER EL MISMO CANAL QUE EN puente.js Y live.html
-        const CANAL_NTFY = 'tiempofuera_marcador_tf9981';
+        // CANAL PRIVADO DE TRANSMISIÓN (Debe coincidir exactamente con live.html y puente.js)
+        const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
+        const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
 
         const logos = { liga: '', eq1: '', eq2: '', top: '' };
         const sim = { p1: 24, p2: 19, f1: 3, f2: 5, q: 1, timer: '05:54', shot: 14 };
+
+        const mqttClient = mqtt.connect(BROKER_URL, { reconnectPeriod: 1000 });
+        let timeoutSenal = null;
+
+        mqttClient.on('connect', () => {
+            const status = document.getElementById('pubStatus');
+            if (status) {
+                status.style.color = '#81c784';
+                status.textContent = 'Canal WebSocket conectado. Listo para transmitir a OBS.';
+            }
+            mqttClient.subscribe(`${CANAL_BASE}/vivo`);
+        });
+
+        mqttClient.on('message', (topic, message) => {
+            if (topic === `${CANAL_BASE}/vivo`) {
+                try {
+                    const d = JSON.parse(message.toString());
+                    const dot = document.getElementById('signalDot');
+                    const txt = document.getElementById('signalText');
+                    dot.classList.add('online');
+                    txt.textContent = `Señal ScoreSight OK (${d.points_1 || d.points1 || 0} - ${d.points_2 || d.points2 || 0} | ${d.timer || '--:--'})`;
+
+                    clearTimeout(timeoutSenal);
+                    timeoutSenal = setTimeout(() => {
+                        dot.classList.remove('online');
+                        txt.textContent = 'Señal ScoreSight pausada';
+                    }, 3500);
+                } catch (e) {}
+            }
+        });
 
         function aclararHex(hex, porcentaje) {
             hex = hex.replace('#', '');
@@ -433,7 +465,6 @@
             return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
         }
 
-        // Optimiza logos automáticamente para transmisión web instantánea sin perder nitidez
         function bindLogo(inputId, key) {
             const el = document.getElementById(inputId);
             if (!el) return;
@@ -658,64 +689,21 @@
             actualizarTodo();
         }
 
-        async function transmitirDisenoOBS() {
-            const btn = document.getElementById('btnPublicar');
+        function transmitirDisenoOBS() {
             const status = document.getElementById('pubStatus');
             const cfg = obtenerConfig();
 
-            btn.disabled = true;
-            btn.textContent = 'Transmitiendo...';
-
-            try {
-                const res = await fetch(`https://ntfy.sh/${CANAL_NTFY}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Title': 'Estudio Config'
-                    },
-                    body: JSON.stringify(cfg)
-                });
-
-                if (res.ok) {
-                    status.style.color = '#81c784';
-                    status.textContent = `Diseño publicado en vivo (${new Date().toLocaleTimeString()})`;
-                } else {
-                    throw new Error('HTTP ' + res.status);
-                }
-            } catch (err) {
+            if (!mqttClient.connected) {
                 status.style.color = '#ff5252';
-                status.textContent = 'Error al enviar diseño: ' + err.message;
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '📡 Transmitir Diseño a OBS';
+                status.textContent = 'Sin conexión WebSocket. Espera 2 segundos y reintenta.';
+                return;
             }
+
+            mqttClient.publish(`${CANAL_BASE}/config`, JSON.stringify(cfg), { qos: 1, retain: true });
+            status.style.color = '#81c784';
+            status.textContent = `Diseño publicado en vivo (${new Date().toLocaleTimeString()})`;
         }
 
-        // Monitor de señal viva desde el puente PC
-        let timeoutSenal = null;
-        function monitorearPuente() {
-            const es = new EventSource(`https://ntfy.sh/${CANAL_NTFY}/sse`);
-            es.onmessage = (event) => {
-                try {
-                    const paquete = JSON.parse(event.data);
-                    if (paquete.title === 'ScoreSight Sync' && paquete.message) {
-                        const d = JSON.parse(paquete.message);
-                        const dot = document.getElementById('signalDot');
-                        const txt = document.getElementById('signalText');
-                        dot.classList.add('online');
-                        txt.textContent = `Señal ScoreSight OK (${d.points_1 || d.points1 || 0} - ${d.points_2 || d.points2 || 0} | ${d.timer || '--:--'})`;
-
-                        clearTimeout(timeoutSenal);
-                        timeoutSenal = setTimeout(() => {
-                            dot.classList.remove('online');
-                            txt.textContent = 'Señal ScoreSight pausada';
-                        }, 4000);
-                    }
-                } catch (e) {}
-            };
-        }
-
-        // Restaurar configuración guardada en el navegador
         function restaurarConfigLocal() {
             const guardado = localStorage.getItem('tf_estudio_cfg');
             if (!guardado) return;
@@ -759,7 +747,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             restaurarConfigLocal();
             actualizarTodo();
-            monitorearPuente();
         });
     </script>
 </body>
