@@ -2,337 +2,485 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Marcador En Vivo — Tiempo Fuera</title>
+    <title>Estudio Scoreboard — Tiempo Fuera</title>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
-        html, body {
+        :root {
+            --bg-panel: #111215;
+            --bg-card: #191b20;
+            --gold: #e3b857;
+            --border: #2c303a;
+            --text: #f2f2f2;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body {
+            background: var(--bg-panel);
+            color: var(--text);
             margin: 0;
-            padding: 0;
-            width: 1920px;
-            height: 1080px;
-            background: transparent !important;
-            overflow: hidden;
+            padding: 20px;
         }
-        /* Anclado en la parte inferior de la pantalla */
-        .obs-anchor {
-            position: absolute;
-            bottom: 54px;
-            left: 50%;
-            transform: translateX(-50%) translateY(0) scale(var(--sb-scale, 1));
-            transform-origin: bottom center;
-            opacity: 1;
-            transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-            will-change: opacity, transform;
-        }
-        /* Transición oculta: desvanece bajando para luego aparecer subiendo */
-        .obs-anchor.sb-hidden {
-            opacity: 0;
-            transform: translateX(-50%) translateY(42px) scale(calc(var(--sb-scale, 1) * 0.97));
-            pointer-events: none;
-        }
-
-        /* Cápsula de Redes Sociales al costado izquierdo */
-        .social-pill-wrap {
-            position: absolute;
-            right: calc(100% + 18px);
-            top: 50%;
-            transform: translateY(-50%) translateX(24px);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-            z-index: 1;
-        }
-        .social-pill-wrap.active {
-            opacity: 1;
-            transform: translateY(-50%) translateX(0);
-        }
-        .social-pill {
+        .header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 11px;
-            background: linear-gradient(145deg, #1b1d24 0%, #0d0e12 100%);
-            border: 1.5px solid var(--sb-accent, #e3b857);
-            border-radius: 10px;
-            padding: 8px 16px 8px 12px;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-            white-space: nowrap;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-bottom: 2px solid var(--gold);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
             font-family: 'Barlow Condensed', sans-serif;
-        }
-        .social-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.6);
-        }
-        .social-icon.ig {
-            background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
-        }
-        .social-icon.yt {
-            background: linear-gradient(135deg, #ff1e1e 0%, #b80000 100%);
-        }
-        .social-texts {
-            display: flex;
-            flex-direction: column;
-            line-height: 1.05;
-        }
-        .social-cta {
-            font-size: 13px;
-            font-weight: 700;
+            font-style: italic;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: var(--sb-accent, #e3b857);
+            margin: 0;
+            color: var(--gold);
+            font-size: 28px;
         }
-        .social-handle {
-            font-size: 21px;
-            font-weight: 800;
-            color: #ffffff;
-            letter-spacing: 0.4px;
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #1b1e24;
+            border: 1px solid #3c414d;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+            user-select: none;
         }
+        .status-pill:hover {
+            border-color: var(--gold);
+            background: #232730;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff5252;
+            box-shadow: 0 0 8px #ff5252;
+            flex-shrink: 0;
+        }
+        .dot.online {
+            background: #00e676;
+            box-shadow: 0 0 8px #00e676;
+        }
+        .dot.checking {
+            background: #ffd740;
+            box-shadow: 0 0 8px #ffd740;
+        }
+        .preview-stage {
+            background-image: 
+                linear-gradient(45deg, #1e2025 25%, transparent 25%), 
+                linear-gradient(-45deg, #1e2025 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #1e2025 75%), 
+                linear-gradient(-45deg, transparent 75%, #1e2025 75%);
+            background-size: 24px 24px;
+            background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+            background-color: #15171b;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 46px 20px 44px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 22px;
+            overflow-x: auto;
+            min-height: 245px;
+        }
+        .preview-badge {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #999;
+            margin-bottom: 24px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(295px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .card h3 {
+            margin: 0 0 12px 0;
+            font-size: 15px;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            border-bottom: 1px solid #2a2d35;
+            padding-bottom: 6px;
+        }
+        .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .row label {
+            font-size: 13px;
+            color: #ccc;
+            flex: 1;
+        }
+        input[type="text"], select {
+            background: #252830;
+            border: 1px solid #3c414d;
+            color: #fff;
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 56%;
+        }
+        input[type="color"] {
+            width: 44px;
+            height: 32px;
+            border: 1px solid #555;
+            border-radius: 6px;
+            background: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        input[type="file"] {
+            font-size: 12px;
+            color: #bbb;
+            width: 56%;
+        }
+        .range-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 56%;
+        }
+        .range-wrap input[type="range"] {
+            flex: 1;
+            accent-color: var(--gold);
+            cursor: pointer;
+        }
+        .range-val {
+            font-size: 12px;
+            color: var(--gold);
+            font-weight: 700;
+            min-width: 42px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .actions-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid var(--gold);
+            align-items: center;
+            justify-content: space-between;
+        }
+        button {
+            padding: 11px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.1s ease, filter 0.2s ease, background 0.2s ease;
+        }
+        button:hover { filter: brightness(1.1); }
+        button:active { transform: scale(0.98); }
+        .btn-gold { background: linear-gradient(135deg, #e3b857, #c59636); color: #111; }
+        .btn-dark { background: #2d313b; color: #fff; border: 1px solid #444; }
+        .btn-vis-on { background: linear-gradient(135deg, #1b5e20, #2e7d32); color: #ffffff; border: 1px solid #4caf50; }
+        .btn-vis-off { background: linear-gradient(135deg, #7f0000, #b71c1c); color: #ffffff; border: 1px solid #ef5350; }
     </style>
 </head>
 <body>
-    <div class="obs-anchor" id="obsAnchor">
-        <div class="social-pill-wrap" id="socialWrap">
-            <div class="social-pill" id="socialCard"></div>
+
+    <div class="header">
+        <h1>Estudio Scoreboard — Tiempo Fuera</h1>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <button id="btnToggleVisTop" class="btn-vis-on" style="padding: 7px 14px; font-size: 13px;" onclick="alternarVisibilidadOBS()">👁 Marcador Visible en OBS</button>
+            <div class="status-pill" id="bridgePill" onclick="verificarPuente()" title="Haz clic para reconectar y verificar el puente">
+                <span class="dot" id="signalDot"></span>
+                <span id="signalText">Esperando Puente PC...</span>
+            </div>
+            <a href="./live.html" target="_blank" style="color: var(--gold); font-size: 13px; font-weight: 700;">Abrir Vista OBS ↗</a>
         </div>
-        <div id="marcadorMount"></div>
+    </div>
+
+    <div class="preview-stage">
+        <div class="preview-badge">Vista Previa En Vivo (Refleja Datos Reales de ScoreSight)</div>
+        <div id="previewMount"></div>
+    </div>
+
+    <div class="grid-3">
+        <div class="card">
+            <h3>1. Liga y Tipografía</h3>
+            <div class="row">
+                <label>Logo Liga / Torneo</label>
+                <input type="file" id="logoLigaIn" accept="image/*">
+            </div>
+            <div class="row">
+                <label>Tipografía del Marcador</label>
+                <select id="fontFamily" onchange="actualizarTodo()">
+                    <option value="'Barlow Condensed', sans-serif" selected>Barlow Condensed (Broadcast Pro)</option>
+                    <option value="'Arial Narrow', sans-serif">Arial Narrow (Clásica)</option>
+                    <option value="'Impact', sans-serif">Impact (Broadcast Pesada)</option>
+                    <option value="'Segoe UI', sans-serif">Segoe UI (Moderna Limpia)</option>
+                </select>
+            </div>
+            <div class="row">
+                <label>Borde Dorado / Acento</label>
+                <input type="color" id="accentColor" value="#e3b857" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>Barra Faltas (1-4)</label>
+                <input type="color" id="foulActiveColor" value="#ffe600" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>5ta Falta (Bonus / Roja)</label>
+                <input type="color" id="foulBonusColor" value="#ff1744" oninput="actualizarTodo()">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>2. Equipo Local (Izquierda)</h3>
+            <div class="row">
+                <label>Nombre Equipo 1 (máx. 24)</label>
+                <input type="text" id="name1" value="DREAMZ" maxlength="24" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>Logo Equipo 1</label>
+                <input type="file" id="logo1In" accept="image/*">
+            </div>
+            <div class="row">
+                <label>Color Base (Gradiente 3D)</label>
+                <input type="color" id="bg1Color" value="#1c1e24" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>Color Letra Equipo 1</label>
+                <input type="color" id="text1Color" value="#ffffff" oninput="actualizarTodo()">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>3. Equipo Visita (Derecha)</h3>
+            <div class="row">
+                <label>Nombre Equipo 2 (máx. 24)</label>
+                <input type="text" id="name2" value="BRISAS" maxlength="24" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>Logo Equipo 2</label>
+                <input type="file" id="logo2In" accept="image/*">
+            </div>
+            <div class="row">
+                <label>Color Base (Gradiente 3D)</label>
+                <input type="color" id="bg2Color" value="#1c1e24" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>Color Letra Equipo 2</label>
+                <input type="color" id="text2Color" value="#ffffff" oninput="actualizarTodo()">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>4. Ajustes de Tamaño y Proporción</h3>
+            <div class="row">
+                <label>Escala General (1080p / 2K)</label>
+                <div class="range-wrap">
+                    <input type="range" id="boardScale" min="70" max="160" value="100" oninput="actualizarTodo()">
+                    <span class="range-val" id="boardScaleVal">100%</span>
+                </div>
+            </div>
+            <div class="row">
+                <label>Tamaño Logo Liga</label>
+                <div class="range-wrap">
+                    <input type="range" id="ligaSize" min="60" max="150" value="92" oninput="actualizarTodo()">
+                    <span class="range-val" id="ligaSizeVal">92px</span>
+                </div>
+            </div>
+            <div class="row">
+                <label>Tamaño Logos Equipos</label>
+                <div class="range-wrap">
+                    <input type="range" id="teamLogoSize" min="26" max="54" value="44" oninput="actualizarTodo()">
+                    <span class="range-val" id="teamLogoSizeVal">44px</span>
+                </div>
+            </div>
+            <div class="row">
+                <label>Tamaño Texto Equipos</label>
+                <div class="range-wrap">
+                    <input type="range" id="teamFontSize" min="16" max="32" value="25" oninput="actualizarTodo()">
+                    <span class="range-val" id="teamFontSizeVal">25px</span>
+                </div>
+            </div>
+            <div class="row">
+                <label>Tamaño Caja y Puntos</label>
+                <div class="range-wrap">
+                    <input type="range" id="scoreBoxSize" min="36" max="64" value="48" oninput="actualizarTodo()">
+                    <span class="range-val" id="scoreBoxSizeVal">48px</span>
+                </div>
+            </div>
+            <div class="row">
+                <label>Tamaño Reloj y Cuarto</label>
+                <div class="range-wrap">
+                    <input type="range" id="clockFontSize" min="24" max="42" value="32" oninput="actualizarTodo()">
+                    <span class="range-val" id="clockFontSizeVal">32px</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>5. Gráfica / Texto Sobre Puntaje</h3>
+            <div class="row">
+                <label>Mostrar Elemento Superior</label>
+                <select id="topBadgeEnabled" onchange="actualizarTodo()">
+                    <option value="0" selected>Desactivado (Oculto)</option>
+                    <option value="1">Activado (Mostrar sobre puntaje)</option>
+                </select>
+            </div>
+            <div class="row">
+                <label>Tipo de Elemento</label>
+                <select id="topBadgeMode" onchange="actualizarTodo()">
+                    <option value="image" selected>Gráfica / Logo Suplementario</option>
+                    <option value="text">Texto Personalizado</option>
+                </select>
+            </div>
+            <div id="topImageControls">
+                <div class="row">
+                    <label>Subir Gráfica Superior</label>
+                    <input type="file" id="logoTopIn" accept="image/*">
+                </div>
+                <div class="row">
+                    <label>Tamaño Gráfica</label>
+                    <div class="range-wrap">
+                        <input type="range" id="topImgSize" min="20" max="110" value="44" oninput="actualizarTodo()">
+                        <span class="range-val" id="topImgSizeVal">44px</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <label>Posición Vertical (Altura)</label>
+                    <div class="range-wrap">
+                        <input type="range" id="topImgOffset" min="-15" max="45" value="18" oninput="actualizarTodo()">
+                        <span class="range-val" id="topImgOffsetVal">18px</span>
+                    </div>
+                </div>
+            </div>
+            <div id="topTextControls" style="display: none;">
+                <div class="row">
+                    <label>Texto Superior</label>
+                    <input type="text" id="topTextValue" value="GRAN FINAL" maxlength="24" oninput="actualizarTodo()">
+                </div>
+                <div class="row">
+                    <label>Color del Texto</label>
+                    <input type="color" id="topTextColor" value="#ffffff" oninput="actualizarTodo()">
+                </div>
+                <div class="row">
+                    <label>Altura / Tamaño Texto</label>
+                    <div class="range-wrap">
+                        <input type="range" id="topTextSize" min="11" max="28" value="15" oninput="actualizarTodo()">
+                        <span class="range-val" id="topTextSizeVal">15px</span>
+                    </div>
+                </div>
+                <div class="row">
+                    <label>Posición Vertical</label>
+                    <div class="range-wrap">
+                        <input type="range" id="topTextOffset" min="-10" max="35" value="14" oninput="actualizarTodo()">
+                        <span class="range-val" id="topTextOffsetVal">14px</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>6. Colores Puntos, 24s y Cuarto</h3>
+            <div class="row">
+                <label>Reloj de 24 Segundos</label>
+                <select id="showShotClock" onchange="actualizarTodo()">
+                    <option value="1" selected>Habilitado (Mostrar abajo)</option>
+                    <option value="0">Deshabilitado (Ocultar)</option>
+                </select>
+            </div>
+            <div class="row">
+                <label>Fondo Caja Puntos</label>
+                <input type="color" id="scoreBgColor" value="#0c0d10" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>Color Números Puntos</label>
+                <input type="color" id="scoreTextColor" value="#e3b857" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>Fondo Caja 24s / Reloj</label>
+                <input type="color" id="clockBgColor" value="#141519" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>Color Números 24 Segundos</label>
+                <input type="color" id="shotTextColor" value="#ff2a2a" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>Color Números Reloj</label>
+                <input type="color" id="clockTextColor" value="#ffffff" oninput="actualizarTodo()">
+            </div>
+            <div class="row">
+                <label>Color Texto Cuarto / OT</label>
+                <input type="color" id="periodTextColor" value="#e3b857" oninput="actualizarTodo()">
+            </div>
+        </div>
+    </div>
+
+    <div class="actions-bar">
+        <div>
+            <strong style="color: var(--gold);">Producto diseñado por Tiempo Fuera</strong>
+            <div id="pubStatus" style="font-size: 12px; color: #aaa; margin-top: 3px;">Conectando al canal de transmisión...</div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="btnToggleVisBottom" class="btn-vis-on" onclick="alternarVisibilidadOBS()">👁 Ocultar Marcador en OBS</button>
+            <button class="btn-dark" onclick="resetearLogos()">Limpiar Logos</button>
+            <button class="btn-gold" id="btnPublicar" onclick="transmitirDisenoOBS()">📡 Transmitir Diseño a OBS</button>
+        </div>
     </div>
 
     <script>
         const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
         const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
+        const STORAGE_KEY = 'tf_estudio_cfg_v5';
 
-        let configActual = {
-            visible: true,
-            boardScale: 1.0,
-            fontFamily: "'Barlow Condensed', sans-serif",
-            accentColor: "#e3b857",
-            foulActiveColor: "#ffe600",
-            foulBonusColor: "#ff1744",
-            ligaSize: 92,
-            teamLogoSize: 44,
-            teamFontSize: 25,
-            scoreBoxSize: 48,
-            clockFontSize: 32,
-            topBadgeEnabled: false,
-            topBadgeMode: 'image',
-            topImgSize: 44,
-            topImgOffset: 18,
-            topTextValue: '',
-            topTextColor: '#ffffff',
-            topTextSize: 15,
-            topTextOffset: 14,
-            showShotClock: true,
-            name1: "LOCAL",
-            bg1Color: "#1c1e24",
-            text1Color: "#ffffff",
-            name2: "VISITA",
-            bg2Color: "#1c1e24",
-            text2Color: "#ffffff",
-            scoreBgColor: "#0c0d10",
-            scoreTextColor: "#e3b857",
-            shotBgColor: "#141519",
-            shotTextColor: "#ff2a2a",
-            clockBgColor: "#141519",
-            clockTextColor: "#ffffff",
-            periodTextColor: "#e3b857",
-            logoLiga: '',
-            logo1: '',
-            logo2: '',
-            logoTop: ''
-        };
+        const logos = { liga: '', eq1: '', eq2: '', top: '' };
+        let datosVivos = { points_1: '0', points_2: '0', fouls_1: '0', fouls_2: '0', timer: '10:00', moment: '1', shotclock: '24' };
+        let marcadorVisible = true;
+        let mqttClient = null;
+        let timeoutSenal = null;
 
-        let datosVivos = {};
-
-        function aclararHex(hex, porcentaje) {
-            hex = (hex || '#1c1e24').replace('#', '');
-            let r = parseInt(hex.substring(0, 2), 16);
-            let g = parseInt(hex.substring(2, 4), 16);
-            let b = parseInt(hex.substring(4, 6), 16);
-            r = Math.min(255, Math.floor(r + (255 - r) * porcentaje));
-            g = Math.min(255, Math.floor(g + (255 - g) * porcentaje));
-            b = Math.min(255, Math.floor(b + (255 - b) * porcentaje));
-            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-        }
-
-        function oscurecerHex(hex, porcentaje) {
-            hex = (hex || '#1c1e24').replace('#', '');
-            let r = parseInt(hex.substring(0, 2), 16);
-            let g = parseInt(hex.substring(2, 4), 16);
-            let b = parseInt(hex.substring(4, 6), 16);
-            r = Math.max(0, Math.floor(r * (1 - porcentaje)));
-            g = Math.max(0, Math.floor(g * (1 - porcentaje)));
-            b = Math.max(0, Math.floor(b * (1 - porcentaje)));
-            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-        }
-
-        function calcularAnchoAla(cfg) {
-            const maxChars = Math.max((cfg.name1 || '').length, (cfg.name2 || '').length);
-            const fSize = cfg.teamFontSize || 25;
-            const lSize = cfg.teamLogoSize || 44;
-            const anchoTexto = Math.max(140, maxChars * (fSize * 0.56) + 26);
-            return Math.round(anchoTexto + lSize + 28);
-        }
-
-        function aplicarVisibilidadYEscala(cfg) {
-            const anchor = document.getElementById('obsAnchor');
-            if (!anchor) return;
-            const escala = parseFloat(cfg.boardScale) || 1.0;
-            anchor.style.setProperty('--sb-scale', escala);
-            anchor.style.setProperty('--sb-accent', cfg.accentColor || '#e3b857');
-
-            if (cfg.visible === false) {
-                anchor.classList.add('sb-hidden');
-            } else {
-                anchor.classList.remove('sb-hidden');
+        function conectarMQTT() {
+            if (typeof mqtt === 'undefined') {
+                const status = document.getElementById('pubStatus');
+                if (status) status.textContent = 'Error cargando librería MQTT. Recarga la página.';
+                return;
             }
-        }
+            if (mqttClient) {
+                try { mqttClient.end(true); } catch (e) {}
+            }
 
-        function renderizarEstructura(cfg) {
-            aplicarVisibilidadYEscala(cfg);
+            mqttClient = mqtt.connect(BROKER_URL, { reconnectPeriod: 1000 });
 
-            const bg1Light = aclararHex(cfg.bg1Color, 0.24);
-            const bg1Dark = oscurecerHex(cfg.bg1Color, 0.25);
-            const bg2Light = aclararHex(cfg.bg2Color, 0.24);
-            const bg2Dark = oscurecerHex(cfg.bg2Color, 0.25);
-
-            const wingWidth = calcularAnchoAla(cfg);
-            const ligaBoxHeight = Math.max(92, cfg.ligaSize || 92);
-            const teamLogoSize = cfg.teamLogoSize || 44;
-            const teamFontSize = cfg.teamFontSize || 25;
-
-            // Proporciones dinámicas de puntos y reloj
-            const ptsFontSize = cfg.scoreBoxSize || 48;
-            const scoreBoxHeight = Math.round(ptsFontSize * 1.42);
-            const ptsMinWidth = Math.round(ptsFontSize * 1.18);
-            const dashSize = Math.round(ptsFontSize * 0.62);
-            const clockFontSize = cfg.clockFontSize || 32;
-            const periodFontSize = Math.round(clockFontSize * 0.74);
-
-            const ligaHTML = cfg.logoLiga ? `<img src="${cfg.logoLiga}" alt="Liga">` : '';
-
-            let topBadgeHTML = '';
-            if (cfg.topBadgeEnabled) {
-                if (cfg.topBadgeMode === 'image' && cfg.logoTop) {
-                    topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt=""></div>`;
-                } else if (cfg.topBadgeMode === 'text' && (cfg.topTextValue || '').trim() !== '') {
-                    topBadgeHTML = `<div class="lm-top-overlay-text" style="top: -${cfg.topTextOffset}px; font-size: ${cfg.topTextSize}px; color: ${cfg.topTextColor};">${cfg.topTextValue}</div>`;
+            mqttClient.on('connect', () => {
+                const status = document.getElementById('pubStatus');
+                if (status) {
+                    status.style.color = '#81c784';
+                    status.textContent = 'Canal WebSocket conectado. Listo para transmitir a OBS.';
                 }
-            }
-
-            const shotClockHTML = cfg.showShotClock ? `<div class="lm-shotclock-badge" id="shotclock"></div>` : '';
-            let faltasBase = '';
-            for (let i = 1; i <= 5; i++) {
-                faltasBase += `<span class="foul-bar" data-idx="${i}"></span>`;
-            }
-
-            document.getElementById('marcadorMount').innerHTML = `
-                <style>
-                    .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.88)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7)); }
-                    .lm-league-box { height: ${ligaBoxHeight}px; min-width: 86px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px; }
-                    .lm-league-box img { height: ${cfg.ligaSize}px; width: auto; max-width: ${Math.round(cfg.ligaSize * 1.35)}px; object-fit: contain; filter: drop-shadow(0 5px 12px rgba(0,0,0,0.9)); }
-                    .lm-track { display: inline-flex; align-items: center; position: relative; }
-                    .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -4px 10px rgba(0,0,0,0.55); overflow: hidden; }
-                    .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 2px, transparent 2px, transparent 6px); pointer-events: none; }
-                    .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; border-left: none; border-radius: 0; }
-                    .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.8)); }
-                    .lm-team-logo[src=""] { display: none; }
-                    .lm-team-meta { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-width: 0; }
-                    .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 3px rgba(0,0,0,0.85), 0 -1px 0 rgba(255,255,255,0.2); }
-                    .lm-fouls { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; width: 100%; }
-                    .lm-team-wing.away .lm-fouls { flex-direction: row-reverse; justify-content: center; }
-                    .foul-bar { width: 19px; height: 5px; border-radius: 2px; display: inline-block; flex-shrink: 0; transition: all 0.2s ease; }
-                    .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.14)} 0%, ${cfg.scoreBgColor} 50%, ${oscurecerHex(cfg.scoreBgColor, 0.35)} 100%); padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; box-shadow: 0 10px 24px rgba(0,0,0,0.92), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -4px 10px rgba(0,0,0,0.7); z-index: 3; }
-                    .lm-top-overlay-img { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; }
-                    .lm-top-overlay-img img { width: auto; max-width: 210px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.95)); }
-                    .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.15)}, ${cfg.scoreBgColor}); border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; box-shadow: 0 5px 12px rgba(0,0,0,0.92), inset 0 1px 0 rgba(255,255,255,0.25); z-index: 5; }
-                    .lm-pts { font-size: ${ptsFontSize}px; font-weight: 800; color: ${cfg.scoreTextColor}; min-width: ${ptsMinWidth}px; text-align: center; font-variant-numeric: tabular-nums; line-height: 0.92; letter-spacing: -0.5px; text-shadow: 0 3px 8px rgba(0,0,0,0.9); }
-                    .lm-score-dash { font-size: ${dashSize}px; font-weight: 800; color: ${cfg.accentColor}; line-height: 1; opacity: 0.85; padding: 0 1px; }
-                    .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, ${aclararHex(cfg.shotBgColor, 0.15)}, ${cfg.shotBgColor}); color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; box-shadow: 0 6px 14px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.22); z-index: 4; }
-                    .lm-shotclock-badge:empty { display: none; }
-                    .lm-clock-box { display: flex; align-items: center; height: 60px; background: linear-gradient(180deg, ${aclararHex(cfg.clockBgColor, 0.15)} 0%, ${cfg.clockBgColor} 55%, ${oscurecerHex(cfg.clockBgColor, 0.3)} 100%); padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -4px 10px rgba(0,0,0,0.55); }
-                    .lm-timer { font-size: ${clockFontSize}px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: ${Math.round(clockFontSize * 2.25)}px; text-align: center; line-height: 1; text-shadow: 0 2px 5px rgba(0,0,0,0.85); }
-                    .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.25)); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); box-shadow: inset 0 1px 0 rgba(255,255,255,0.15); line-height: 1; }
-                </style>
-                <div class="lm-bar">
-                    <div class="lm-league-box">${ligaHTML}</div>
-                    <div class="lm-track">
-                        <div class="lm-team-wing" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
-                            <img class="lm-team-logo" src="${cfg.logo1 || ''}" alt="">
-                            <div class="lm-team-meta">
-                                <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
-                                <div class="lm-fouls" id="fouls1">${faltasBase}</div>
-                            </div>
-                        </div>
-                        <div class="lm-scores-elevated">
-                            ${topBadgeHTML}
-                            <div class="lm-pts" id="points1">0</div>
-                            <div class="lm-score-dash">-</div>
-                            <div class="lm-pts" id="points2">0</div>
-                            ${shotClockHTML}
-                        </div>
-                        <div class="lm-team-wing away" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
-                            <img class="lm-team-logo" src="${cfg.logo2 || ''}" alt="">
-                            <div class="lm-team-meta">
-                                <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
-                                <div class="lm-fouls" id="fouls2">${faltasBase}</div>
-                            </div>
-                        </div>
-                        <div class="lm-clock-box">
-                            <div class="lm-timer" id="timer">10:00</div>
-                            <div class="lm-period" id="period">Q1</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            aplicarDatosVivos();
-        }
-
-        function actualizarFaltas(id, cantidad) {
-            const cont = document.getElementById(id);
-            if (!cont) return;
-            const barras = cont.querySelectorAll('.foul-bar');
-            const num = parseInt(cantidad, 10) || 0;
-            barras.forEach((b, idx) => {
-                const n = idx + 1;
-                const esBonus = n === 5;
-                if (n <= num) {
-                    const col = esBonus ? configActual.foulBonusColor : configActual.foulActiveColor;
-                    b.style.background = col;
-                    b.style.border = "1px solid #111111";
-                    b.style.boxShadow = `0 0 6px rgba(0,0,0,0.9), 0 0 7px ${col}`;
-                } else {
-                    b.style.background = "rgba(0,0,0,0.52)";
-                    b.style.border = "1px solid rgba(255,255,255,0.38)";
-                    b.style.boxShadow = "none";
-                }
+                mqttClient.subscribe(`${CANAL_BASE}/vivo`);
+                mqttClient.subscribe(`${CANAL_BASE}/ping`);
             });
-        }
 
-        function formatearPeriodo(momentRaw, overtimeLed) {
-            if (overtimeLed !== undefined && overtimeLed !== "" && overtimeLed !== "0") return "OT";
-            const n = parseInt(String(momentRaw).replace(/[^0-9]/g, ""), 10);
-            if (isNaN(n) || n <= 0) return "Q1";
-            if (n <= 4) return "Q" + n;
-            return "OT" + (n - 4);
-        }
-
-        function aplicarDatosVivos() {
-            const l = datosVivos;
-            if (!l) return;
-            const p1 = (l.points_1 || l.points1 || l.score_1 || l.score1 || "").replace(/[^0-9]/g, "");
-            const p2 = (l.points_2 || l.points2 || l.score_2 || l.score2 || "").replace(/[^0-9]/g, "");
-            if (p1 !== "") document.getElementById("points1").textContent = p1;
-            if (p2 !== "") document.getElementById("points2").textContent = p2;
-            if (configActual.showShotClock && l.shotclock !== undefined) {
-                const sc = document.getElementById("shotclock");
-                if (sc) sc.textContent = l.shotclock.replace(/[^0-9]/g, "");
-            }
-            if (l.fouls_1 !== undefined) actualizarFaltas("fouls1", l.fouls_1.replace(/[^0-9]/g, ""));
-            if (l.fouls_2 !== undefined) actualizarFaltas("fouls2", l.fouls_2.replace(/[^0-9]/g, ""));
-            if (l.moment !== undefi
+            mqttClient.on('message', (topic, message) => {
+                if (topic === `${CANAL_BASE}/vivo`) {
+    
