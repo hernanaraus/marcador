@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Marcador En Vivo — Tiempo Fuera</title>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
         html, body {
             margin: 0;
@@ -25,8 +26,9 @@
     <div class="obs-anchor" id="marcadorMount"></div>
 
     <script>
-        // DEBE SER EL MISMO CANAL QUE EN puente.js E index.html
-        const CANAL_NTFY = 'tiempofuera_marcador_tf9981';
+        // CANAL PRIVADO DE TRANSMISIÓN (Debe coincidir exactamente con puente.js e index.html)
+        const CANAL_BASE = 'tiempofuera/marcador/tf_canal_secreto_9981';
+        const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
 
         let configActual = {
             fontFamily: "'Barlow Condensed', sans-serif",
@@ -214,37 +216,29 @@
             }
         }
 
-        // Render inicial
+        // Render inicial mientras llegan los datos
         renderizarEstructura(configActual);
 
-        // Escucha constante en tiempo real desde ntfy.sh (recuperando últimos 15 min al conectar)
-        function iniciarStream() {
-            const es = new EventSource(`https://ntfy.sh/${CANAL_NTFY}/sse?since=15m`);
+        // Conexión por WebSocket de baja latencia
+        const client = mqtt.connect(BROKER_URL, { reconnectPeriod: 1000 });
 
-            es.onmessage = (event) => {
-                try {
-                    const paquete = JSON.parse(event.data);
-                    if (!paquete.message) return;
+        client.on('connect', () => {
+            client.subscribe(`${CANAL_BASE}/config`);
+            client.subscribe(`${CANAL_BASE}/vivo`);
+        });
 
-                    const contenido = JSON.parse(paquete.message);
-
-                    if (paquete.title === 'Estudio Config') {
-                        configActual = contenido;
-                        renderizarEstructura(configActual);
-                    } else {
-                        datosVivos = contenido;
-                        aplicarDatosVivos();
-                    }
-                } catch (e) {}
-            };
-
-            es.onerror = () => {
-                es.close();
-                setTimeout(iniciarStream, 2000);
-            };
-        }
-
-        iniciarStream();
+        client.on('message', (topic, message) => {
+            try {
+                const contenido = JSON.parse(message.toString());
+                if (topic === `${CANAL_BASE}/config`) {
+                    configActual = contenido;
+                    renderizarEstructura(configActual);
+                } else if (topic === `${CANAL_BASE}/vivo`) {
+                    datosVivos = contenido;
+                    aplicarDatosVivos();
+                }
+            } catch (e) {}
+        });
     </script>
 </body>
 </html>
