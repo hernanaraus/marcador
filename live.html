@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Marcador En Vivo — Tiempo Fuera</title>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 1920px;
+            height: 1080px;
+            background: transparent !important;
+            overflow: hidden;
+        }
+        .obs-anchor {
+            position: absolute;
+            top: 56px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="obs-anchor" id="marcadorMount"></div>
+
+    <script>
+        // DEBE SER EL MISMO CANAL QUE EN puente.js E index.html
+        const CANAL_NTFY = 'tiempofuera_marcador_tf9981';
+
+        let configActual = {
+            fontFamily: "'Barlow Condensed', sans-serif",
+            accentColor: "#e3b857",
+            foulActiveColor: "#ffe600",
+            foulBonusColor: "#ff1744",
+            ligaSize: 97,
+            topBadgeEnabled: false,
+            topBadgeMode: 'image',
+            topImgSize: 44,
+            topImgOffset: 18,
+            topTextValue: '',
+            topTextColor: '#ffffff',
+            topTextSize: 15,
+            topTextOffset: 14,
+            showShotClock: true,
+            name1: "LOCAL",
+            bg1Color: "#1c1e24",
+            text1Color: "#ffffff",
+            name2: "VISITA",
+            bg2Color: "#1c1e24",
+            text2Color: "#ffffff",
+            scoreBgColor: "#0c0d10",
+            scoreTextColor: "#e3b857",
+            shotBgColor: "#141519",
+            shotTextColor: "#ff2a2a",
+            clockBgColor: "#141519",
+            clockTextColor: "#ffffff",
+            periodTextColor: "#e3b857",
+            logoLiga: '',
+            logo1: '',
+            logo2: '',
+            logoTop: ''
+        };
+
+        let datosVivos = {};
+
+        function aclararHex(hex, porcentaje) {
+            hex = (hex || '#1c1e24').replace('#', '');
+            let r = parseInt(hex.substring(0, 2), 16);
+            let g = parseInt(hex.substring(2, 4), 16);
+            let b = parseInt(hex.substring(4, 6), 16);
+            r = Math.min(255, Math.floor(r + (255 - r) * porcentaje));
+            g = Math.min(255, Math.floor(g + (255 - g) * porcentaje));
+            b = Math.min(255, Math.floor(b + (255 - b) * porcentaje));
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+
+        function calcularAnchoAla(cfg) {
+            const maxChars = Math.max((cfg.name1 || '').length, (cfg.name2 || '').length);
+            const anchoTexto = Math.max(150, maxChars * 14.5 + 24);
+            return Math.round(anchoTexto + 76);
+        }
+
+        function renderizarEstructura(cfg) {
+            const grad1 = `linear-gradient(90deg, ${cfg.bg1Color} 0%, ${aclararHex(cfg.bg1Color, 0.25)} 100%)`;
+            const grad2 = `linear-gradient(270deg, ${cfg.bg2Color} 0%, ${aclararHex(cfg.bg2Color, 0.25)} 100%)`;
+            const wingWidth = calcularAnchoAla(cfg);
+            const ligaBoxHeight = Math.max(98, cfg.ligaSize || 97);
+            const ligaHTML = cfg.logoLiga ? `<img src="${cfg.logoLiga}" alt="Liga">` : '';
+
+            let topBadgeHTML = '';
+            if (cfg.topBadgeEnabled) {
+                if (cfg.topBadgeMode === 'image' && cfg.logoTop) {
+                    topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt=""></div>`;
+                } else if (cfg.topBadgeMode === 'text' && (cfg.topTextValue || '').trim() !== '') {
+                    topBadgeHTML = `<div class="lm-top-overlay-text" style="top: -${cfg.topTextOffset}px; font-size: ${cfg.topTextSize}px; color: ${cfg.topTextColor};">${cfg.topTextValue}</div>`;
+                }
+            }
+
+            const shotClockHTML = cfg.showShotClock ? `<div class="lm-shotclock-badge" id="shotclock"></div>` : '';
+            let faltasBase = '';
+            for (let i = 1; i <= 5; i++) {
+                faltasBase += `<span class="foul-bar" data-idx="${i}"></span>`;
+            }
+
+            document.getElementById('marcadorMount').innerHTML = `
+                <style>
+                    .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; filter: drop-shadow(0 8px 22px rgba(0,0,0,0.8)); }
+                    .lm-league-box { height: ${ligaBoxHeight}px; min-width: 92px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 8px; }
+                    .lm-league-box img { height: ${cfg.ligaSize}px; width: auto; max-width: ${Math.round(cfg.ligaSize * 1.35)}px; object-fit: contain; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.85)); }
+                    .lm-track { display: inline-flex; align-items: center; position: relative; }
+                    .lm-team-wing { display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 6px; gap: 10px; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 1.5px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 8px 0 0 8px; box-sizing: border-box; }
+                    .lm-team-wing.away { flex-direction: row-reverse; padding: 0 6px 0 14px; border-left: none; border-radius: 0; }
+                    .lm-team-logo { height: 100%; width: 58px; object-fit: contain; flex-shrink: 0; padding: 2px 0; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.65)); }
+                    .lm-team-logo[src=""] { display: none; }
+                    .lm-team-meta { display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; }
+                    .lm-team-name { width: 100%; text-align: center; font-size: 27px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; line-height: 1; white-space: nowrap; text-shadow: 0 2px 4px rgba(0,0,0,0.55); }
+                    .lm-fouls { display: flex; align-items: center; justify-content: flex-start; gap: 5px; margin-top: 6px; width: 100%; }
+                    .lm-team-wing.away .lm-fouls { flex-direction: row-reverse; justify-content: flex-start; }
+                    .foul-bar { width: 22px; height: 5px; border-radius: 2px; display: inline-block; flex-shrink: 0; transition: all 0.2s ease; }
+                    .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: 72px; background: ${cfg.scoreBgColor}; padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 7px; box-shadow: 0 6px 18px rgba(0,0,0,0.85); z-index: 2; }
+                    .lm-top-overlay-img { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; }
+                    .lm-top-overlay-img img { width: auto; max-width: 210px; object-fit: contain; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.9)); }
+                    .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: ${cfg.scoreBgColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 5px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.9); z-index: 5; }
+                    .lm-pts { font-size: 58px; font-weight: 800; color: ${cfg.scoreTextColor}; min-width: 68px; text-align: center; font-variant-numeric: tabular-nums; line-height: 0.92; letter-spacing: -0.5px; }
+                    .lm-score-dash { font-size: 36px; font-weight: 800; color: ${cfg.accentColor}; line-height: 1; opacity: 0.85; padding: 0 1px; }
+                    .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: ${cfg.shotBgColor}; color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 5px; font-size: 20px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.9); z-index: 4; }
+                    .lm-shotclock-badge:empty { display: none; }
+                    .lm-clock-box { display: flex; align-items: center; height: 60px; background: ${cfg.clockBgColor}; padding: 0 16px; gap: 12px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 8px 8px 0; }
+                    .lm-timer { font-size: 34px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: 78px; text-align: center; line-height: 1; }
+                    .lm-period { font-size: 25px; font-weight: 800; color: ${cfg.periodTextColor}; background: rgba(255,255,255,0.07); padding: 4px 10px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.14); line-height: 1; }
+                </style>
+                <div class="lm-bar">
+                    <div class="lm-league-box">${ligaHTML}</div>
+                    <div class="lm-track">
+                        <div class="lm-team-wing" style="background: ${grad1};">
+                            <img class="lm-team-logo" src="${cfg.logo1 || ''}" alt="">
+                            <div class="lm-team-meta">
+                                <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
+                                <div class="lm-fouls" id="fouls1">${faltasBase}</div>
+                            </div>
+                        </div>
+                        <div class="lm-scores-elevated">
+                            ${topBadgeHTML}
+                            <div class="lm-pts" id="points1">0</div>
+                            <div class="lm-score-dash">-</div>
+                            <div class="lm-pts" id="points2">0</div>
+                            ${shotClockHTML}
+                        </div>
+                        <div class="lm-team-wing away" style="background: ${grad2};">
+                            <img class="lm-team-logo" src="${cfg.logo2 || ''}" alt="">
+                            <div class="lm-team-meta">
+                                <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
+                                <div class="lm-fouls" id="fouls2">${faltasBase}</div>
+                            </div>
+                        </div>
+                        <div class="lm-clock-box">
+                            <div class="lm-timer" id="timer">10:00</div>
+                            <div class="lm-period" id="period">Q1</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            aplicarDatosVivos();
+        }
+
+        function actualizarFaltas(id, cantidad) {
+            const cont = document.getElementById(id);
+            if (!cont) return;
+            const barras = cont.querySelectorAll('.foul-bar');
+            const num = parseInt(cantidad, 10) || 0;
+            barras.forEach((b, idx) => {
+                const n = idx + 1;
+                const esBonus = n === 5;
+                if (n <= num) {
+                    const col = esBonus ? configActual.foulBonusColor : configActual.foulActiveColor;
+                    b.style.background = col;
+                    b.style.border = "1px solid #111111";
+                    b.style.boxShadow = `0 0 5px rgba(0,0,0,0.85), 0 0 6px ${col}`;
+                } else {
+                    b.style.background = "rgba(0,0,0,0.48)";
+                    b.style.border = "1px solid rgba(255,255,255,0.4)";
+                    b.style.boxShadow = "none";
+                }
+            });
+        }
+
+        function formatearPeriodo(momentRaw, overtimeLed) {
+            if (overtimeLed !== undefined && overtimeLed !== "" && overtimeLed !== "0") return "OT";
+            const n = parseInt(String(momentRaw).replace(/[^0-9]/g, ""), 10);
+            if (isNaN(n) || n <= 0) return "Q1";
+            if (n <= 4) return "Q" + n;
+            return "OT" + (n - 4);
+        }
+
+        function aplicarDatosVivos() {
+            const l = datosVivos;
+            if (!l) return;
+            const p1 = (l.points_1 || l.points1 || l.score_1 || l.score1 || "").replace(/[^0-9]/g, "");
+            const p2 = (l.points_2 || l.points2 || l.score_2 || l.score2 || "").replace(/[^0-9]/g, "");
+            if (p1 !== "") document.getElementById("points1").textContent = p1;
+            if (p2 !== "") document.getElementById("points2").textContent = p2;
+            if (configActual.showShotClock && l.shotclock !== undefined) {
+                const sc = document.getElementById("shotclock");
+                if (sc) sc.textContent = l.shotclock.replace(/[^0-9]/g, "");
+            }
+            if (l.fouls_1 !== undefined) actualizarFaltas("fouls1", l.fouls_1.replace(/[^0-9]/g, ""));
+            if (l.fouls_2 !== undefined) actualizarFaltas("fouls2", l.fouls_2.replace(/[^0-9]/g, ""));
+            if (l.moment !== undefined && l.moment !== "") {
+                document.getElementById("period").textContent = formatearPeriodo(l.moment, l.overtime_led);
+            }
+            if (l.timer !== undefined && l.timer !== "") {
+                document.getElementById("timer").textContent = l.timer;
+            }
+        }
+
+        // Render inicial
+        renderizarEstructura(configActual);
+
+        // Escucha constante en tiempo real desde ntfy.sh (recuperando últimos 15 min al conectar)
+        function iniciarStream() {
+            const es = new EventSource(`https://ntfy.sh/${CANAL_NTFY}/sse?since=15m`);
+
+            es.onmessage = (event) => {
+                try {
+                    const paquete = JSON.parse(event.data);
+                    if (!paquete.message) return;
+
+                    const contenido = JSON.parse(paquete.message);
+
+                    if (paquete.title === 'Estudio Config') {
+                        configActual = contenido;
+                        renderizarEstructura(configActual);
+                    } else {
+                        datosVivos = contenido;
+                        aplicarDatosVivos();
+                    }
+                } catch (e) {}
+            };
+
+            es.onerror = () => {
+                es.close();
+                setTimeout(iniciarStream, 2000);
+            };
+        }
+
+        iniciarStream();
+    </script>
+</body>
+</html>
