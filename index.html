@@ -52,12 +52,7 @@
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
-            transition: border-color 0.2s ease, background 0.2s ease;
             user-select: none;
-        }
-        .status-pill:hover {
-            border-color: var(--gold);
-            background: #232730;
         }
         .dot {
             width: 10px;
@@ -67,14 +62,8 @@
             box-shadow: 0 0 8px #ff5252;
             flex-shrink: 0;
         }
-        .dot.online {
-            background: #00e676;
-            box-shadow: 0 0 8px #00e676;
-        }
-        .dot.checking {
-            background: #ffd740;
-            box-shadow: 0 0 8px #ffd740;
-        }
+        .dot.online { background: #00e676; box-shadow: 0 0 8px #00e676; }
+        .dot.checking { background: #ffd740; box-shadow: 0 0 8px #ffd740; }
         .preview-stage {
             background-image: 
                 linear-gradient(45deg, #1e2025 25%, transparent 25%), 
@@ -130,11 +119,7 @@
             gap: 10px;
             margin-bottom: 10px;
         }
-        .row label {
-            font-size: 13px;
-            color: #ccc;
-            flex: 1;
-        }
+        .row label { font-size: 13px; color: #ccc; flex: 1; }
         input[type="text"], select {
             background: #252830;
             border: 1px solid #3c414d;
@@ -154,9 +139,14 @@
             padding: 0;
         }
         input[type="file"] {
-            font-size: 11px;
-            color: #bbb;
+            font-size: 12px;
+            color: #fff;
+            background: #252830;
+            border: 1px dashed var(--gold);
+            padding: 6px;
+            border-radius: 6px;
             width: 56%;
+            cursor: pointer;
         }
         .logo-box-group {
             background: #14161a;
@@ -165,28 +155,10 @@
             padding: 10px;
             margin-bottom: 10px;
         }
-        .logo-box-group .row:last-child {
-            margin-bottom: 0;
-        }
-        .range-wrap {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            width: 56%;
-        }
-        .range-wrap input[type="range"] {
-            flex: 1;
-            accent-color: var(--gold);
-            cursor: pointer;
-        }
-        .range-val {
-            font-size: 12px;
-            color: var(--gold);
-            font-weight: 700;
-            min-width: 42px;
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-        }
+        .logo-box-group .row:last-child { margin-bottom: 0; }
+        .range-wrap { display: flex; align-items: center; gap: 8px; width: 56%; }
+        .range-wrap input[type="range"] { flex: 1; accent-color: var(--gold); cursor: pointer; }
+        .range-val { font-size: 12px; color: var(--gold); font-weight: 700; min-width: 42px; text-align: right; }
         .actions-bar {
             display: flex;
             gap: 12px;
@@ -205,10 +177,7 @@
             font-weight: 700;
             font-size: 14px;
             cursor: pointer;
-            transition: transform 0.1s ease, filter 0.2s ease, background 0.2s ease;
         }
-        button:hover { filter: brightness(1.1); }
-        button:active { transform: scale(0.98); }
         .btn-gold { background: linear-gradient(135deg, #e3b857, #c59636); color: #111; }
         .btn-dark { background: #2d313b; color: #fff; border: 1px solid #444; }
         .btn-vis-on { background: linear-gradient(135deg, #1b5e20, #2e7d32); color: #ffffff; border: 1px solid #4caf50; }
@@ -221,7 +190,7 @@
         <h1>Estudio Scoreboard — Tiempo Fuera</h1>
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <button id="btnToggleVisTop" class="btn-vis-on" style="padding: 7px 14px; font-size: 13px;" onclick="alternarVisibilidadOBS()">👁 Marcador Visible en OBS</button>
-            <div class="status-pill" id="bridgePill" onclick="verificarPuente()" title="Haz clic para reconectar y verificar el puente">
+            <div class="status-pill" id="bridgePill" onclick="verificarPuente()">
                 <span class="dot" id="signalDot"></span>
                 <span id="signalText">Esperando Puente PC...</span>
             </div>
@@ -230,7 +199,7 @@
     </div>
 
     <div class="preview-stage">
-        <div class="preview-badge">Vista Previa En Vivo (Firestore + Repositorio GitHub)</div>
+        <div class="preview-badge">Vista Previa En Vivo (Carga directa desde PC + Firestore)</div>
         <div id="previewMount"></div>
     </div>
 
@@ -239,12 +208,12 @@
             <h3>1. Liga y Tipografía</h3>
             <div class="logo-box-group">
                 <div class="row">
-                    <label>Ruta Logo Liga (GitHub)</label>
-                    <input type="text" id="logoLigaPath" placeholder="./logos/liga.png" oninput="actualizarRutaLogo('liga', this.value)">
+                    <label>Subir Logo Liga (PC)</label>
+                    <input type="file" id="logoLigaIn" accept="image/*">
                 </div>
                 <div class="row">
-                    <label>O subir rápido desde PC</label>
-                    <input type="file" id="logoLigaIn" accept="image/*">
+                    <label>Estado Logo Liga</label>
+                    <input type="text" id="logoLigaPath" placeholder="Sin logo" readonly>
                 </div>
             </div>
             <div class="row">
@@ -278,12 +247,12 @@
             </div>
             <div class="logo-box-group">
                 <div class="row">
-                    <label>Ruta Logo 1 (GitHub)</label>
-                    <input type="text" id="logo1Path" placeholder="./logos/equipo1.png" oninput="actualizarRutaLogo('eq1', this.value)">
+                    <label>Subir Logo Equipo 1 (PC)</label>
+                    <input type="file" id="logo1In" accept="image/*">
                 </div>
                 <div class="row">
-                    <label>O subir rápido desde PC</label>
-                    <input type="file" id="logo1In" accept="image/*">
+                    <label>Estado Logo 1</label>
+                    <input type="text" id="logo1Path" placeholder="Sin logo" readonly>
                 </div>
             </div>
             <div class="row">
@@ -304,12 +273,12 @@
             </div>
             <div class="logo-box-group">
                 <div class="row">
-                    <label>Ruta Logo 2 (GitHub)</label>
-                    <input type="text" id="logo2Path" placeholder="./logos/equipo2.png" oninput="actualizarRutaLogo('eq2', this.value)">
+                    <label>Subir Logo Equipo 2 (PC)</label>
+                    <input type="file" id="logo2In" accept="image/*">
                 </div>
                 <div class="row">
-                    <label>O subir rápido desde PC</label>
-                    <input type="file" id="logo2In" accept="image/*">
+                    <label>Estado Logo 2</label>
+                    <input type="text" id="logo2Path" placeholder="Sin logo" readonly>
                 </div>
             </div>
             <div class="row">
@@ -387,12 +356,12 @@
             <div id="topImageControls">
                 <div class="logo-box-group">
                     <div class="row">
-                        <label>Ruta Gráfica (GitHub)</label>
-                        <input type="text" id="logoTopPath" placeholder="./logos/sponsor.png" oninput="actualizarRutaLogo('top', this.value)">
+                        <label>Subir Gráfica (PC)</label>
+                        <input type="file" id="logoTopIn" accept="image/*">
                     </div>
                     <div class="row">
-                        <label>O subir rápido desde PC</label>
-                        <input type="file" id="logoTopIn" accept="image/*">
+                        <label>Estado Gráfica</label>
+                        <input type="text" id="logoTopPath" placeholder="Sin gráfica" readonly>
                     </div>
                 </div>
                 <div class="row">
@@ -509,27 +478,19 @@
 
         function conectarMQTT() {
             if (typeof mqtt === 'undefined') return;
-            if (mqttClient) {
-                try { mqttClient.end(true); } catch (e) {}
-            }
-
+            if (mqttClient) { try { mqttClient.end(true); } catch (e) {} }
             mqttClient = mqtt.connect(BROKER_URL, { reconnectPeriod: 1000 });
-            mqttClient.on('connect', () => {
-                mqttClient.subscribe(`${CANAL_BASE}/vivo`);
-            });
-
+            mqttClient.on('connect', () => { mqttClient.subscribe(`${CANAL_BASE}/vivo`); });
             mqttClient.on('message', (topic, message) => {
                 if (topic === `${CANAL_BASE}/vivo`) {
                     try {
                         datosVivos = JSON.parse(message.toString());
                         aplicarDatosEnPreview();
-
                         const dot = document.getElementById('signalDot');
                         const txt = document.getElementById('signalText');
                         dot.classList.remove('checking');
                         dot.classList.add('online');
                         txt.textContent = `Señal ScoreSight OK (${datosVivos.points_1 || datosVivos.points1 || 0} - ${datosVivos.points_2 || datosVivos.points2 || 0} | ${datosVivos.timer || '--:--'})`;
-
                         clearTimeout(timeoutSenal);
                         timeoutSenal = setTimeout(() => {
                             dot.classList.remove('online');
@@ -545,15 +506,8 @@
             const txt = document.getElementById('signalText');
             dot.classList.remove('online');
             dot.classList.add('checking');
-            txt.textContent = 'Verificando conexión con puente...';
+            txt.textContent = 'Verificando conexión...';
             conectarMQTT();
-
-            setTimeout(() => {
-                if (!dot.classList.contains('online')) {
-                    dot.classList.remove('checking');
-                    txt.textContent = 'Sin señal del puente PC (Clic para reintentar)';
-                }
-            }, 3000);
         }
 
         function actualizarBotonesVisibilidad() {
@@ -581,11 +535,11 @@
                 await db.collection('scoreboard').doc('live_config').set({ visible: marcadorVisible }, { merge: true });
                 status.style.color = '#81c784';
                 status.textContent = marcadorVisible
-                    ? `Marcador mostrado subiendo en OBS (${new Date().toLocaleTimeString()})`
-                    : `Marcador ocultado suavemente en OBS (${new Date().toLocaleTimeString()})`;
+                    ? `Marcador mostrado en OBS (${new Date().toLocaleTimeString()})`
+                    : `Marcador ocultado en OBS (${new Date().toLocaleTimeString()})`;
             } catch (e) {
                 status.style.color = '#ff5252';
-                status.textContent = 'Error cambiando visibilidad en Firestore: ' + e.message;
+                status.textContent = 'Error cambiando visibilidad: ' + e.message;
             }
         }
 
@@ -611,70 +565,44 @@
             return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
         }
 
-        function actualizarRutaLogo(key, valor) {
-            logos[key] = (valor || '').trim();
-            actualizarTodo();
-        }
-
         function procesarLogoRapido(file, key, pathInputId) {
             const status = document.getElementById('pubStatus');
             status.style.color = '#ffd740';
-            status.textContent = `Recortando y optimizando logo (${key})...`;
+            status.textContent = `Cargando imagen (${file.name})...`;
 
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const img = new Image();
-                img.onload = function() {
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = img.width;
-                    tempCanvas.height = img.height;
-                    const tCtx = tempCanvas.getContext('2d');
-                    tCtx.drawImage(img, 0, 0);
+                img.onload = async function() {
+                    try {
+                        const targetH = 150;
+                        const scale = img.height > targetH ? (targetH / img.height) : 1;
+                        const finalW = Math.max(1, Math.round(img.width * scale));
+                        const finalH = Math.max(1, Math.round(img.height * scale));
 
-                    const imgData = tCtx.getImageData(0, 0, img.width, img.height).data;
-                    let minX = img.width, minY = img.height, maxX = 0, maxY = 0;
-                    let found = false;
+                        const outCanvas = document.createElement('canvas');
+                        outCanvas.width = finalW;
+                        outCanvas.height = finalH;
+                        const oCtx = outCanvas.getContext('2d');
+                        oCtx.clearRect(0, 0, finalW, finalH);
+                        oCtx.drawImage(img, 0, 0, finalW, finalH);
 
-                    for (let y = 0; y < img.height; y++) {
-                        for (let x = 0; x < img.width; x++) {
-                            const alpha = imgData[(y * img.width + x) * 4 + 3];
-                            if (alpha > 15) {
-                                if (x < minX) minX = x;
-                                if (x > maxX) maxX = x;
-                                if (y < minY) minY = y;
-                                if (y > maxY) maxY = y;
-                                found = true;
-                            }
-                        }
+                        const dataUrl = outCanvas.toDataURL('image/webp', 0.85);
+                        logos[key] = dataUrl;
+
+                        const pInput = document.getElementById(pathInputId);
+                        if (pInput) pInput.value = `OK (${Math.round(dataUrl.length / 1024)} KB)`;
+
+                        actualizarTodo();
+                        await transmitirDisenoOBS();
+                    } catch (err) {
+                        status.style.color = '#ff5252';
+                        status.textContent = 'Error procesando logo: ' + err.message;
                     }
-
-                    if (!found) {
-                        minX = 0; minY = 0; maxX = img.width - 1; maxY = img.height - 1;
-                    }
-
-                    const trimW = Math.max(1, maxX - minX + 1);
-                    const trimH = Math.max(1, maxY - minY + 1);
-
-                    const targetH = 180;
-                    const scale = trimH > targetH ? (targetH / trimH) : 1;
-                    const finalW = Math.round(trimW * scale);
-                    const finalH = Math.round(trimH * scale);
-
-                    const outCanvas = document.createElement('canvas');
-                    outCanvas.width = finalW;
-                    outCanvas.height = finalH;
-                    const oCtx = outCanvas.getContext('2d');
-                    oCtx.imageSmoothingEnabled = true;
-                    oCtx.imageSmoothingQuality = 'high';
-                    oCtx.drawImage(tempCanvas, minX, minY, trimW, trimH, 0, 0, finalW, finalH);
-
-                    const dataUrl = outCanvas.toDataURL('image/webp', 0.85);
-                    logos[key] = dataUrl;
-                    const pInput = document.getElementById(pathInputId);
-                    if (pInput) pInput.value = '[Imagen optimizada desde PC]';
-                    actualizarTodo();
-                    status.style.color = '#81c784';
-                    status.textContent = `Logo (${key}) listo (${Math.round(dataUrl.length / 1024)} KB). Presiona "Guardar y Transmitir a OBS".`;
+                };
+                img.onerror = function() {
+                    status.style.color = '#ff5252';
+                    status.textContent = 'Formato de imagen no soportado. Usa PNG o JPG.';
                 };
                 img.src = ev.target.result;
             };
@@ -805,14 +733,14 @@
             }
 
             const ligaHTML = cfg.logoLiga
-                ? `<img src="${cfg.logoLiga}" alt="Liga" onerror="this.style.display='none'">`
+                ? `<img src="${cfg.logoLiga}" alt="Liga">`
                 : `<div class="lm-league-placeholder">LOGO<br>LIGA</div>`;
 
             let topBadgeHTML = '';
             if (cfg.topBadgeEnabled) {
                 if (cfg.topBadgeMode === 'image') {
                     if (cfg.logoTop) {
-                        topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt="" onerror="this.style.display='none'"></div>`;
+                        topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><img src="${cfg.logoTop}" style="height:${cfg.topImgSize}px;" alt=""></div>`;
                     } else {
                         topBadgeHTML = `<div class="lm-top-overlay-img" style="top: -${cfg.topImgOffset}px;"><div class="lm-top-placeholder" style="height:${cfg.topImgSize}px;">GRÁFICA</div></div>`;
                     }
@@ -833,6 +761,9 @@
                 ? `<div class="lm-shotclock-badge" id="prevShotclock">${scVal}</div>`
                 : '';
 
+            const img1HTML = cfg.logo1 ? `<img class="lm-team-logo" src="${cfg.logo1}" alt="">` : '';
+            const img2HTML = cfg.logo2 ? `<img class="lm-team-logo" src="${cfg.logo2}" alt="">` : '';
+
             return `
                 <style>
                     .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; transform: scale(${cfg.boardScale}); transform-origin: center center; filter: drop-shadow(0 16px 32px rgba(0,0,0,0.88)) drop-shadow(0 4px 10px rgba(0,0,0,0.7)); }
@@ -844,7 +775,6 @@
                     .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 2px, transparent 2px, transparent 6px); pointer-events: none; }
                     .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; border-left: none; border-radius: 0; }
                     .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.8)); }
-                    .lm-team-logo[src=""] { display: none; }
                     .lm-team-meta { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-width: 0; }
                     .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 3px rgba(0,0,0,0.85), 0 -1px 0 rgba(255,255,255,0.2); }
                     .lm-fouls { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; width: 100%; }
@@ -866,7 +796,7 @@
                     <div class="lm-league-box">${ligaHTML}</div>
                     <div class="lm-track">
                         <div class="lm-team-wing" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
-                            <img class="lm-team-logo" src="${cfg.logo1}" alt="" onerror="this.style.display='none'">
+                            ${img1HTML}
                             <div class="lm-team-meta">
                                 <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
                                 <div class="lm-fouls" id="prevFouls1">${renderFaltas(f1Val)}</div>
@@ -880,7 +810,7 @@
                             ${shotClockHTML}
                         </div>
                         <div class="lm-team-wing away" style="background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 45%, rgba(0,0,0,0.35) 100%), linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
-                            <img class="lm-team-logo" src="${cfg.logo2}" alt="" onerror="this.style.display='none'">
+                            ${img2HTML}
                             <div class="lm-team-meta">
                                 <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
                                 <div class="lm-fouls" id="prevFouls2">${renderFaltas(f2Val)}</div>
@@ -945,7 +875,7 @@
             try {
                 await db.collection('scoreboard').doc('live_config').set(cfg);
                 status.style.color = '#81c784';
-                status.textContent = `Guardado en Firestore y transmitido a OBS (${new Date().toLocaleTimeString()})`;
+                status.textContent = `Transmitido a OBS y guardado en Firestore (${new Date().toLocaleTimeString()})`;
             } catch (e) {
                 status.style.color = '#ff5252';
                 status.textContent = 'Error al guardar en Firestore: ' + e.message;
@@ -996,16 +926,16 @@
                     logos.eq2 = cfg.logo2 || '';
                     logos.top = cfg.logoTop || '';
 
-                    document.getElementById('logoLigaPath').value = logos.liga.startsWith('data:') ? '[Imagen optimizada desde PC]' : logos.liga;
-                    document.getElementById('logo1Path').value = logos.eq1.startsWith('data:') ? '[Imagen optimizada desde PC]' : logos.eq1;
-                    document.getElementById('logo2Path').value = logos.eq2.startsWith('data:') ? '[Imagen optimizada desde PC]' : logos.eq2;
-                    document.getElementById('logoTopPath').value = logos.top.startsWith('data:') ? '[Imagen optimizada desde PC]' : logos.top;
+                    document.getElementById('logoLigaPath').value = logos.liga ? `OK (${Math.round(logos.liga.length / 1024)} KB)` : '';
+                    document.getElementById('logo1Path').value = logos.eq1 ? `OK (${Math.round(logos.eq1.length / 1024)} KB)` : '';
+                    document.getElementById('logo2Path').value = logos.eq2 ? `OK (${Math.round(logos.eq2.length / 1024)} KB)` : '';
+                    document.getElementById('logoTopPath').value = logos.top ? `OK (${Math.round(logos.top.length / 1024)} KB)` : '';
 
                     status.style.color = '#81c784';
-                    status.textContent = 'Configuración y logos recuperados desde Firestore.';
+                    status.textContent = 'Diseño y logos recuperados desde Firestore.';
                 } else {
                     status.style.color = '#81c784';
-                    status.textContent = 'Firestore conectado (listo para guardar primer diseño).';
+                    status.textContent = 'Firestore conectado. Sube tus logos o presiona Guardar.';
                 }
             } catch (e) {
                 status.style.color = '#ff5252';
