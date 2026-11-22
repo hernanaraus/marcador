@@ -55,8 +55,8 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: linear-gradient(145deg, #1b1d24 0%, #101217 100%);
-            border: 1.5px solid var(--sb-accent, #e3b857);
+            background: #14171f;
+            border: 2px solid var(--sb-accent, #e3b857);
             border-radius: 10px;
             padding: 9px 18px 9px 13px;
             white-space: nowrap;
@@ -96,73 +96,6 @@
             letter-spacing: 0.4px;
         }
 
-        /* TERCIO INFERIOR (LOWER THIRD) */
-        .lt-anchor {
-            position: absolute;
-            bottom: 54px;
-            left: 64px;
-            transform: translateX(-48px);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-            z-index: 25;
-        }
-        .lt-anchor.active {
-            opacity: 1;
-            transform: translateX(0);
-        }
-        .lt-box {
-            display: inline-flex;
-            align-items: center;
-            gap: 16px;
-            padding: 12px 26px 12px 18px;
-            border-radius: 12px;
-            border-left: 6px solid var(--lt-accent, #e3b857);
-            border-top: 1.5px solid var(--lt-accent, #e3b857);
-            border-right: 1.5px solid var(--lt-accent, #e3b857);
-            border-bottom: 2px solid var(--lt-accent, #e3b857);
-            background: var(--lt-bg, #14171f);
-            max-width: 1180px;
-        }
-        .lt-logo {
-            height: 68px;
-            width: auto;
-            max-width: 110px;
-            object-fit: contain;
-            flex-shrink: 0;
-        }
-        .lt-divider {
-            width: 2px;
-            height: 52px;
-            background: var(--lt-accent, #e3b857);
-            opacity: 0.55;
-            flex-shrink: 0;
-        }
-        .lt-texts {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: 3px;
-            min-width: 220px;
-        }
-        .lt-title {
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            line-height: 1.05;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-        .lt-subtitle {
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            line-height: 1.15;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-        .lt-fade-swap {
-            opacity: 0;
-            transform: translateY(4px);
-        }
-
         /* ANIMACIÓN +2 / +3 */
         @keyframes basketBurst {
             0% { opacity: 0; transform: translate(-50%, 6px) scale(0.55); }
@@ -186,12 +119,12 @@
             animation: basketBurst 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
         .pts-pop-badge.triple {
-            background: linear-gradient(135deg, #fff3b0 0%, #f59e0b 55%, #d97706 100%);
+            background: #f59e0b;
             color: #111111;
             border: 1.5px solid #ffffff;
         }
         .pts-pop-badge.doble {
-            background: linear-gradient(135deg, #ffffff 0%, #e5e7eb 100%);
+            background: #ffffff;
             color: #111111;
             border: 1.5px solid var(--sb-accent, #e3b857);
         }
@@ -200,10 +133,6 @@
 <body>
     <div class="social-pill-wrap" id="socialWrap">
         <div class="social-pill" id="socialCard"></div>
-    </div>
-
-    <div class="lt-anchor" id="ltAnchor">
-        <div class="lt-box" id="ltBox"></div>
     </div>
 
     <div class="obs-anchor sb-hidden" id="obsAnchor">
@@ -255,20 +184,7 @@
             logoTop: '',
             socialAutoEnabled: true,
             socialPosition: 'top-left',
-            socialIntervalSec: 150,
-            ltVisible: false,
-            ltShowLigaLogo: true,
-            ltMode: 'simple',
-            ltTitle: 'HERNÁN ARAUS',
-            ltSubtitle: 'PRODUCTOR GENERAL — TIEMPO FUERA',
-            ltCarouselLines: 'TRANSMISIÓN EN VIVO\n@TIEMPOFUERA_CL\nBÁSQUETBOL FORMATIVO Y ADULTO',
-            ltCarouselSec: 5,
-            ltBgColor: '#12151c',
-            ltAccentColor: '#e3b857',
-            ltTitleColor: '#ffffff',
-            ltTitleSize: 34,
-            ltSubtitleColor: '#e3b857',
-            ltSubtitleSize: 20
+            socialIntervalSec: 150
         };
 
         let configLista = false;
@@ -283,28 +199,6 @@
                 configLista = true;
             }
         } catch (e) {}
-
-        function aclararHex(hex, porcentaje) {
-            hex = (hex || '#1c1e24').replace('#', '');
-            let r = parseInt(hex.substring(0, 2), 16);
-            let g = parseInt(hex.substring(2, 4), 16);
-            let b = parseInt(hex.substring(4, 6), 16);
-            r = Math.min(255, Math.floor(r + (255 - r) * porcentaje));
-            g = Math.min(255, Math.floor(g + (255 - g) * porcentaje));
-            b = Math.min(255, Math.floor(b + (255 - b) * porcentaje));
-            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-        }
-
-        function oscurecerHex(hex, porcentaje) {
-            hex = (hex || '#1c1e24').replace('#', '');
-            let r = parseInt(hex.substring(0, 2), 16);
-            let g = parseInt(hex.substring(2, 4), 16);
-            let b = parseInt(hex.substring(4, 6), 16);
-            r = Math.max(0, Math.floor(r * (1 - porcentaje)));
-            g = Math.max(0, Math.floor(g * (1 - porcentaje)));
-            b = Math.max(0, Math.floor(b * (1 - porcentaje)));
-            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-        }
 
         function calcularAnchoAla(cfg) {
             const maxChars = Math.max((cfg.name1 || '').length, (cfg.name2 || '').length);
@@ -340,11 +234,6 @@
         function renderizarEstructura(cfg) {
             aplicarVisibilidadYEscala(cfg);
 
-            const bg1Light = aclararHex(cfg.bg1Color, 0.22);
-            const bg1Dark = oscurecerHex(cfg.bg1Color, 0.14);
-            const bg2Light = aclararHex(cfg.bg2Color, 0.22);
-            const bg2Dark = oscurecerHex(cfg.bg2Color, 0.14);
-
             const wingWidth = calcularAnchoAla(cfg);
             const ligaBoxHeight = Math.max(92, cfg.ligaSize || 92);
             const teamLogoSize = cfg.teamLogoSize || 44;
@@ -379,36 +268,35 @@
 
             document.getElementById('marcadorMount').innerHTML = `
                 <style>
-                    .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; }
-                    .lm-league-box { height: ${ligaBoxHeight}px; min-width: 86px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px; }
+                    .lm-bar { display: inline-flex; align-items: center; height: ${ligaBoxHeight}px; font-family: ${cfg.fontFamily}; user-select: none; background: transparent; }
+                    .lm-league-box { height: ${ligaBoxHeight}px; min-width: 86px; padding: 0 10px; display: flex; align-items: center; justify-content: center; margin-right: 10px; background: transparent; }
                     .lm-league-box img { height: ${cfg.ligaSize}px; width: auto; max-width: ${Math.round(cfg.ligaSize * 1.35)}px; object-fit: contain; }
-                    .lm-track { display: inline-flex; align-items: center; position: relative; }
-                    .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; overflow: hidden; }
-                    .lm-team-wing::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 6px); pointer-events: none; }
-                    .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; border-left: none; border-radius: 0; }
+                    .lm-track { display: inline-flex; align-items: center; position: relative; background: transparent; }
+                    .lm-team-wing { position: relative; display: flex; align-items: center; height: 60px; width: ${wingWidth}px; padding: 0 14px 0 10px; gap: 10px; background: ${cfg.bg1Color}; border-top: 1.5px solid ${cfg.accentColor}; border-bottom: 2px solid ${cfg.accentColor}; border-left: 1.5px solid ${cfg.accentColor}; border-radius: 10px 0 0 10px; box-sizing: border-box; overflow: hidden; }
+                    .lm-team-wing.away { flex-direction: row-reverse; padding: 0 10px 0 14px; background: ${cfg.bg2Color}; border-left: none; border-radius: 0; }
                     .lm-team-logo { position: relative; z-index: 2; height: ${teamLogoSize}px; width: ${teamLogoSize}px; object-fit: contain; flex-shrink: 0; }
                     .lm-team-meta { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-width: 0; }
                     .lm-team-name { width: 100%; text-align: center; font-size: ${teamFontSize}px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                     .lm-fouls { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 6px; width: 100%; }
                     .lm-team-wing.away .lm-fouls { flex-direction: row-reverse; justify-content: center; }
                     .foul-bar { width: 19px; height: 5px; border-radius: 2px; display: inline-block; flex-shrink: 0; transition: all 0.2s ease; }
-                    .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.14)} 0%, ${cfg.scoreBgColor} 55%, ${oscurecerHex(cfg.scoreBgColor, 0.18)} 100%); padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; z-index: 3; }
+                    .lm-scores-elevated { position: relative; display: flex; align-items: center; justify-content: center; height: ${scoreBoxHeight}px; background: ${cfg.scoreBgColor}; padding: 0 14px; gap: 6px; border: 2px solid ${cfg.accentColor}; border-radius: 9px; z-index: 3; }
                     .lm-top-overlay-img { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; }
                     .lm-top-overlay-img img { width: auto; max-width: 210px; object-fit: contain; }
-                    .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: linear-gradient(180deg, ${aclararHex(cfg.scoreBgColor, 0.15)}, ${cfg.scoreBgColor}); border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; z-index: 5; }
+                    .lm-top-overlay-text { position: absolute; left: 50%; transform: translateX(-50%); background: ${cfg.scoreBgColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; padding: 2px 12px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; z-index: 5; }
                     .lm-pts-slot { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: ${ptsMinWidth}px; }
                     .lm-pts { font-size: ${ptsFontSize}px; font-weight: 800; color: ${cfg.scoreTextColor}; text-align: center; font-variant-numeric: tabular-nums; line-height: 0.92; letter-spacing: -0.5px; }
                     .lm-score-dash { font-size: ${dashSize}px; font-weight: 800; color: ${cfg.accentColor}; line-height: 1; opacity: 0.85; padding: 0 1px; }
-                    .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, ${aclararHex(cfg.shotBgColor, 0.15)}, ${cfg.shotBgColor}); color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; z-index: 4; }
+                    .lm-shotclock-badge { position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; background: ${cfg.shotBgColor}; color: ${cfg.shotTextColor}; border: 1.5px solid ${cfg.accentColor}; border-radius: 6px; font-size: 19px; font-weight: 800; min-width: 40px; height: 24px; padding: 0 7px; font-variant-numeric: tabular-nums; line-height: 1; z-index: 4; }
                     .lm-shotclock-badge:empty { display: none; }
-                    .lm-clock-box { display: flex; align-items: center; height: 60px; background: linear-gradient(180deg, ${aclararHex(cfg.clockBgColor, 0.15)} 0%, ${cfg.clockBgColor} 55%, ${oscurecerHex(cfg.clockBgColor, 0.16)} 100%); padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; }
+                    .lm-clock-box { display: flex; align-items: center; height: 60px; background: ${cfg.clockBgColor}; padding: 0 14px; gap: 10px; border: 1.5px solid ${cfg.accentColor}; border-radius: 0 10px 10px 0; }
                     .lm-timer { font-size: ${clockFontSize}px; font-weight: 700; color: ${cfg.clockTextColor}; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; min-width: ${Math.round(clockFontSize * 2.25)}px; text-align: center; line-height: 1; }
-                    .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: rgba(255,255,255,0.08); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); line-height: 1; }
+                    .lm-period { font-size: ${periodFontSize}px; font-weight: 800; color: ${cfg.periodTextColor}; background: rgba(255,255,255,0.08); padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.22); line-height: 1; }
                 </style>
                 <div class="lm-bar">
                     <div class="lm-league-box">${ligaHTML}</div>
                     <div class="lm-track">
-                        <div class="lm-team-wing" style="background: linear-gradient(90deg, ${bg1Dark} 0%, ${cfg.bg1Color} 45%, ${bg1Light} 100%);">
+                        <div class="lm-team-wing">
                             ${img1HTML}
                             <div class="lm-team-meta">
                                 <div class="lm-team-name" style="color: ${cfg.text1Color};">${cfg.name1}</div>
@@ -422,7 +310,7 @@
                             <div class="lm-pts-slot" id="slotPoints2"><div class="lm-pts" id="points2">0</div></div>
                             ${shotClockHTML}
                         </div>
-                        <div class="lm-team-wing away" style="background: linear-gradient(270deg, ${bg2Dark} 0%, ${cfg.bg2Color} 45%, ${bg2Light} 100%);">
+                        <div class="lm-team-wing away">
                             ${img2HTML}
                             <div class="lm-team-meta">
                                 <div class="lm-team-name" style="color: ${cfg.text2Color};">${cfg.name2}</div>
@@ -437,74 +325,6 @@
                 </div>
             `;
             aplicarDatosVivos(true);
-            renderizarTercioInferior(cfg);
-        }
-
-        /* TERCIO INFERIOR Y CARRUSEL */
-        let ltCarouselTimer = null;
-        let ltCarouselIdx = 0;
-
-        function renderizarTercioInferior(cfg) {
-            const anchor = document.getElementById('ltAnchor');
-            const box = document.getElementById('ltBox');
-            if (!anchor || !box) return;
-
-            if (ltCarouselTimer) {
-                clearInterval(ltCarouselTimer);
-                ltCarouselTimer = null;
-            }
-
-            if (!cfg.ltVisible) {
-                anchor.classList.remove('active');
-                return;
-            }
-
-            const tieneLogo = cfg.ltShowLigaLogo !== false && cfg.logoLiga;
-            const logoPart = tieneLogo
-                ? `<img class="lt-logo" src="${cfg.logoLiga}" alt="Liga"><div class="lt-divider"></div>`
-                : '';
-
-            const lineas = (cfg.ltCarouselLines || '')
-                .split('\n')
-                .map(s => s.trim())
-                .filter(Boolean);
-
-            const textoInicialSub = (cfg.ltMode === 'carousel' && lineas.length > 0)
-                ? lineas[0]
-                : (cfg.ltSubtitle || '');
-
-            const subVisible = textoInicialSub.trim() !== '';
-
-            box.style.setProperty('--lt-bg', cfg.ltBgColor || '#12151c');
-            box.style.setProperty('--lt-accent', cfg.ltAccentColor || '#e3b857');
-            box.style.fontFamily = cfg.fontFamily || "'Barlow Condensed', sans-serif";
-
-            box.innerHTML = `
-                ${logoPart}
-                <div class="lt-texts">
-                    <div class="lt-title" id="ltTitleEl" style="color:${cfg.ltTitleColor || '#ffffff'}; font-size:${cfg.ltTitleSize || 34}px;">
-                        ${cfg.ltTitle || ''}
-                    </div>
-                    ${subVisible ? `<div class="lt-subtitle" id="ltSubEl" style="color:${cfg.ltSubtitleColor || '#e3b857'}; font-size:${cfg.ltSubtitleSize || 20}px;">${textoInicialSub}</div>` : ''}
-                </div>
-            `;
-
-            anchor.classList.add('active');
-
-            if (cfg.ltMode === 'carousel' && lineas.length > 1) {
-                ltCarouselIdx = 0;
-                const segs = Math.max(2, parseInt(cfg.ltCarouselSec, 10) || 5) * 1000;
-                ltCarouselTimer = setInterval(() => {
-                    const subEl = document.getElementById('ltSubEl');
-                    if (!subEl) return;
-                    ltCarouselIdx = (ltCarouselIdx + 1) % lineas.length;
-                    subEl.classList.add('lt-fade-swap');
-                    setTimeout(() => {
-                        subEl.textContent = lineas[ltCarouselIdx];
-                        subEl.classList.remove('lt-fade-swap');
-                    }, 280);
-                }, segs);
-            }
         }
 
         function dispararAnimacionCanasta(slotId, puntosElementId, nuevoValor, delta) {
@@ -542,8 +362,8 @@
                     b.style.background = col;
                     b.style.border = "1px solid #111111";
                 } else {
-                    b.style.background = "rgba(0,0,0,0.42)";
-                    b.style.border = "1px solid rgba(255,255,255,0.38)";
+                    b.style.background = "rgba(0,0,0,0.35)";
+                    b.style.border = "1px solid rgba(255,255,255,0.45)";
                 }
             });
         }
@@ -588,10 +408,12 @@
                 prevPts2 = num2;
             }
 
-            if (configActual.showShotClock && l.shotclock !== undefined) {
+            const rawShot = l.shotclock ?? l.shot_clock ?? l.shot ?? l.posesion;
+            if (configActual.showShotClock && rawShot !== undefined) {
                 const sc = document.getElementById("shotclock");
-                if (sc) sc.textContent = l.shotclock.replace(/[^0-9]/g, "");
+                if (sc) sc.textContent = String(rawShot).replace(/[^0-9]/g, "");
             }
+
             if (l.fouls_1 !== undefined) actualizarFaltas("fouls1", l.fouls_1.replace(/[^0-9]/g, ""));
             if (l.fouls_2 !== undefined) actualizarFaltas("fouls2", l.fouls_2.replace(/[^0-9]/g, ""));
             if (l.moment !== undefined && l.moment !== "") {
@@ -604,10 +426,11 @@
             }
         }
 
-        /* REDES SOCIALES */
+        /* REDES SOCIALES @TIEMPOFUERA_CL */
         let turnoRedSocial = 0;
         let socialHideTimeout = null;
         let socialAutoInterval = null;
+        let ultimoIntervaloMs = 150000;
 
         function mostrarBannerSocial(forzar = false) {
             if (!forzar && configActual.socialAutoEnabled === false) return;
@@ -653,14 +476,17 @@
             }, 11000);
         }
 
-        function reiniciarCicloSocial() {
-            if (socialAutoInterval) clearInterval(socialAutoInterval);
-            const ms = Math.max(20, parseInt(configActual.socialIntervalSec, 10) || 150) * 1000;
-            socialAutoInterval = setInterval(() => mostrarBannerSocial(false), ms);
+        function asegurarCicloSocial() {
+            const nuevoMs = Math.max(20, parseInt(configActual.socialIntervalSec, 10) || 150) * 1000;
+            if (!socialAutoInterval || nuevoMs !== ultimoIntervaloMs) {
+                if (socialAutoInterval) clearInterval(socialAutoInterval);
+                ultimoIntervaloMs = nuevoMs;
+                socialAutoInterval = setInterval(() => mostrarBannerSocial(false), nuevoMs);
+            }
         }
 
         setTimeout(() => mostrarBannerSocial(false), 3000);
-        reiniciarCicloSocial();
+        asegurarCicloSocial();
 
         renderizarEstructura(configActual);
 
@@ -703,7 +529,7 @@
                             localStorage.setItem('tf_live_cached_cfg', JSON.stringify(configActual));
                         } catch (e) {}
                         renderizarEstructura(configActual);
-                        reiniciarCicloSocial();
+                        asegurarCicloSocial();
                     } catch (e) {}
                 } else if (topic === `${CANAL_BASE}/cmd`) {
                     try {
